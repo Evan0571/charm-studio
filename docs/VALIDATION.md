@@ -2,6 +2,23 @@
 
 验证日期：2026 年 10 月 8 日。
 
+## 当前交接版 — 全新副本部署验证
+
+本节对应 README / SETUP / AI_HANDOFF 描述的交接流程。下方 0.2.1、0.2、0.1 均为历史记录，其中人民币报价、测试数量和「暂无 MCP」等描述不代表当前能力。
+
+- 环境：macOS / Apple Silicon，Node 24.19.0，pnpm 11.25.0。从待提交源码和资源创建独立副本，未复制作者 `.env`、`.data`、`node_modules` 或构建产物；以 `.env.example` 创建无 Key 配置。安装复用了本机 pnpm 下载缓存，并非全空网络缓存的实体新电脑。
+- `pnpm install --frozen-lockfile`：成功，建立独立依赖目录。
+- `pnpm setup:check`：通过；确认 SQLite、本地素材和依赖可用、OpenAI Key 未配置。缺少 cloudflared / 构建时作为可选步骤提示。
+- `pnpm test`：**54 / 54 通过**，包含本次追加的原单价 ÷ 7 取整回归，覆盖业务、接口、MCP、OAuth、本地化、几何和物理；不消耗真实模型额度。
+- `pnpm build`：TypeScript 检查、网站和 MCP 卡片构建成功。仍有 3D chunk 大小及第三方注释移除警告，无构建错误。
+- `pnpm start`：新生产入口成功启动独立端口；`setup:check --url` 的健康、目录、AI 状态检查通过。首页、MCP 调试页及 GLB 资源均 HTTP 200，AI 正确显示未配置。
+- `pnpm mcp:smoke`：通过；官方 SDK 发现 10 个工具，真实调用目录 / 保存 / 报价 / 确认，REST 能读到同一设计，重复确认只产生一条测试订单。数据仅在内存数据库。
+- `pnpm chatgpt:ui-check`：通过；Chrome + 官方 AppBridge 验证浏览器 OAuth / PKCE、CSP iframe、工具调用、锁定上下文、更新同一草稿、取消与确认、USD 报价、3D / 挂包及窄屏，无页面异常。
+- `scripts/language-browser-check.mjs`：通过；中文浏览器环境默认英文、语言记忆、320 / 390 / 768 px 布局、搜索、切换语言保留配置、保存和 USD 测试结算、AI 语言偏好、MCP 调试流程、存储失败提示。AI 为确定性 stub，不算真实模型测试。
+- `pnpm chatgpt:connect`：在副本 `.env` 设置独立 `CHATGPT_PORT` 和已有 cloudflared 的绝对路径，成功启动专用服务器并校验公网 OAuth discovery。由此验证 helper 确实读取 `.env`；此次未在 ChatGPT 安装这个临时测试地址。
+
+独立副本测试服务在验收后停止。原作者的数据库、正在使用的插件连接和开发服务不作为新副本的依赖。Windows / Linux 未在实体机器重跑，真实 ChatGPT 账号的历史验收范围见 [CHATGPT.md](CHATGPT.md)。队友仍应在自己的账号、网络与数据库上按 [AI_HANDOFF.md](AI_HANDOFF.md) 验收。
+
 ## 0.2.1 — 连接与初始摆动修复
 
 - 已复现原问题：React Strict Mode 重放初始化 effect 时施加了扭矩，而 Rapier 尚未更新 `setMass` 后的质量和惯性；缩小的点缀挂件会因此出现高速翻转。

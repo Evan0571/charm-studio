@@ -1,0 +1,94 @@
+// Run after pnpm build:mcp-ui. Set PLAYWRIGHT_MODULE to a Playwright ESM entry
+// if Playwright isn't installed in this checkout. Uses isolated temporary data.
+import assert from 'node:assert/strict';
+import { once } from 'node:events';
+import { createHash, randomBytes } from 'node:crypto';
+import { mkdir, readFile } from 'node:fs/promises';
+import express from 'express';
+import { build } from 'vite';
+import { createApp } from '../server/app.ts';
+import { SqliteStorage } from '../server/storage.ts';
+
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const storage = new SqliteStorage(':memory:');
+const app = createApp(storage, { configured: () => false, reply: async () => { throw new Error('No model calls in UI verification'); } });
+app.use('/assets', (_req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); next(); }, express.static('public/assets'));
+await build({ configFile: false, logLevel: 'silent', publicDir: false, build: { target: 'es2022', outDir: 'tmp/chatgpt-host', minify: false, lib: { entry: 'scripts/chatgpt-harness.ts', formats: ['es'], fileName: () => 'host.js' } } });
+app.use(express.static('tmp/chatgpt-host'));
+app.get('/scripts/chatgpt-harness.html', async (_req, res) => res.type('html').send((await readFile('scripts/chatgpt-harness.html', 'utf8')).replace('/scripts/chatgpt-harness.ts', '/host.js')));
+const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
+const base = `http://127.0.0.1:${server.address().port}`;
+const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });
+const page = await browser.newPage({ viewport: { width: 900, height: 1100 } });
+const errors = [], methods = [];
+page.on('pageerror', error => errors.push(error.message));
+page.on('request', req => { if (req.url() === base + '/mcp' && req.method() === 'POST') { const rpc = req.postDataJSON(); if (rpc.method === 'tools/call') methods.push(rpc.params.name); } });
+const records = async path => (await (await page.request.get(base + path)).json());
+try {
+  // Exercise a real browser form: fetch-only OAuth tests do not apply the
+  // authorization page's Referrer-Policy to the POST's Origin header.
+  const redirect = 'https://chatgpt.com/connector/oauth/browser-regression';
+  const registration = await page.request.post(base + '/register', { data: { client_name: 'Browser regression check', redirect_uris: [redirect], token_endpoint_auth_method: 'none', grant_types: ['authorization_code'], response_types: ['code'] } });
+  assert.equal(registration.status(), 201);
+  const { client_id } = await registration.json();
+  const verifier = randomBytes(32).toString('base64url');
+  const challenge = createHash('sha256').update(verifier).digest('base64url');
+  const params = new URLSearchParams({ client_id, redirect_uri: redirect, response_type: 'code', code_challenge: challenge, code_challenge_method: 'S256', resource: base + '/mcp', scope: 'loop:studio', state: 'browser-regression' });
+  await page.route(redirect + '*', route => route.fulfill({ body: 'OAuth browser callback received.' }));
+  await page.goto(base + '/authorize?' + params);
+  await page.getByRole('button', { name: '授权连接', exact: true }).click();
+  await page.waitForURL(redirect + '*', { timeout: 10000 });
+  const callback = new URL(page.url());
+  assert.equal(callback.searchParams.get('state'), 'browser-regression');
+  const exchange = await page.request.post(base + '/token', { form: { client_id, grant_type: 'authorization_code', code: callback.searchParams.get('code'), code_verifier: verifier, redirect_uri: redirect, resource: base + '/mcp' } });
+  assert.equal(exchange.status(), 200);
+  await page.goto(base + '/scripts/chatgpt-harness.html');
+  const card = page.frameLocator('#widget');
+  await card.getByRole('heading', { name: '珍珠与星光' }).waitFor();
+  assert.match(await card.locator('.price').innerText(), /\$\d+\s*USD/);
+  assert.doesNotMatch(await card.locator('.details').innerText(), /CNY|¥/);
+  await card.getByRole('button', { name: 'Lock Main charm' }).click();
+  await card.getByRole('button', { name: 'Unlock Main charm' }).waitFor();
+  await page.waitForFunction(() => window.loopHarness.trace.at(-1)?.structuredContent?.config.lockedSlots.includes('main'));
+  await card.getByRole('button', { name: 'Save design', exact: true }).click();
+  await card.getByText('Design saved to your LOOP studio.').waitFor();
+  assert.equal((await records('/api/designs')).length, 1);
+  await page.evaluate(() => window.loopHarness.revise());
+  await card.getByRole('heading', { name: '银色版 · 保留主挂饰' }).waitFor();
+  await card.getByRole('button', { name: 'Unlock Main charm' }).waitFor();
+  await card.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await card.getByText('Design saved to your LOOP studio.').waitFor();
+  const saved = await records('/api/designs');
+  assert.equal(saved.length, 1); assert.equal(saved[0].config.metalTone, 'silver'); assert.deepEqual(saved[0].config.lockedSlots, ['main']);
+  await card.getByRole('button', { name: 'View test order' }).click();
+  await card.getByRole('heading', { name: 'Review this test order' }).waitFor();
+  assert.match(await card.locator('.checkout').innerText(), /\$\d+/);
+  assert.deepEqual(await records('/api/orders'), []);
+  await card.getByRole('button', { name: 'Keep editing' }).click();
+  assert.deepEqual(await records('/api/orders'), []);
+  await card.getByRole('button', { name: 'View test order' }).click();
+  await card.getByRole('button', { name: 'Create test order' }).click();
+  await card.getByText('Test order confirmed. No payment or shipping.').waitFor();
+  assert.equal((await records('/api/orders')).length, 1);
+  assert.equal((await records('/api/orders'))[0].quote.currency, 'USD');
+  await card.getByRole('button', { name: 'View 3D' }).click();
+  await card.locator('canvas').waitFor();
+  // Wait for assets and physics to settle before checking the rendered frame.
+  await page.waitForTimeout(6000);
+  assert.equal(await card.getByText('3D is unavailable. Showing the design illustration.').count(), 0);
+  await mkdir('tmp', { recursive: true });
+  await page.screenshot({ path: 'tmp/chatgpt-widget-desktop.png', fullPage: true });
+  await card.getByRole('button', { name: 'On a bag' }).click();
+  await page.waitForTimeout(4000);
+  assert.equal(await card.getByText('3D is unavailable. Showing the design illustration.').count(), 0);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.screenshot({ path: 'tmp/chatgpt-widget-mobile.png', fullPage: true });
+  const frame = await (await page.locator('#widget').elementHandle()).contentFrame();
+  assert.equal(await frame.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  assert.deepEqual(errors, []);
+  for (const tool of ['loop_preview_design', 'loop_quote_design', 'loop_save_design', 'loop_prepare_test_order', 'loop_confirm_test_order']) assert.ok(methods.includes(tool));
+  console.log(JSON.stringify({ result: 'PASS', host: 'official MCP Apps AppBridge', storage: 'temporary SQLite', cases: ['browser OAuth consent + PKCE', 'sandbox + CSP', 'UI tool calls', 'locked part model context', 'incoming revision', 'update same draft', 'cancel vs confirmed test order', '3D + bag assets', 'mobile width'], errors, screenshots: ['tmp/chatgpt-widget-desktop.png', 'tmp/chatgpt-widget-mobile.png'] }, null, 2));
+} finally {
+  await browser.close(); server.closeAllConnections();
+  await new Promise(resolve => server.close(resolve)); app.locals.closeMcp(); storage.close();
+}

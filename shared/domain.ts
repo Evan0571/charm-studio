@@ -1,4 +1,5 @@
 import { catalog } from './catalog';
+import { translate } from './localization';
 import type { DesignConfig, Quote } from './types';
 
 export class ValidationError extends Error {
@@ -49,7 +50,7 @@ export function quoteConfig(config: DesignConfig): Quote {
     if (existing) { existing.quantity++; existing.subtotal += part.price; }
     else lines.push({ id: `part:${part.id}`, name: part.name, quantity: 1, unitPrice: part.price, subtotal: part.price });
   }
-  return { lines, total: lines.reduce((sum, line) => sum + line.subtotal, 0), currency: 'CNY' };
+  return { lines: lines.map(line => ({ ...line, name: translate(line.name, 'en') })), total: lines.reduce((sum, line) => sum + line.subtotal, 0), currency: catalog.currency };
 }
 
 export function validateName(value: unknown, fallback?: string): string {

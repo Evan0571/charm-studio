@@ -55,7 +55,7 @@ test('server ignores submitted totals, stores price snapshot, and makes concurre
     const results = await Promise.all([alice('/api/orders', 'POST', payload), alice('/api/orders', 'POST', payload)]);
     assert.deepEqual(results.map(result => result.status).sort(), [200, 201]);
     assert.equal(results[0].data.id, results[1].data.id);
-    assert.equal(results[0].data.quote.total, 84);
+    assert.equal(results[0].data.quote.total, 13);
     assert.equal(results[0].data.status, 'test_confirmed');
     assert.equal((await alice('/api/orders')).data.length, 1);
     assert.deepEqual((await bob('/api/orders')).data, []);

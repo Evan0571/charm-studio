@@ -1,0 +1,81 @@
+import express, { type Request, type RequestHandler, type ErrorRequestHandler } from 'express';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { hostHeaderValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
+import { ValidationError } from '../../shared/domain';
+import type { Storage } from '../storage';
+import type { StudioService } from '../studio-service';
+import { createMcpTokens, type McpOptions } from './auth';
+import { createLoopMcpServer } from './server';
+import { createLoopOAuth } from './oauth';
+import { OAuthStore } from './oauth-store';
+
+export function createMcpHttp(storage: Storage, service: StudioService, options: McpOptions = {}) {
+  const tokens = createMcpTokens(options.secret, options.now);
+  const publicUrl = options.publicUrl ? new URL(options.publicUrl) : undefined;
+  if (publicUrl && (publicUrl.protocol !== 'https:' || publicUrl.username || publicUrl.password || publicUrl.search || publicUrl.hash || publicUrl.pathname !== '/mcp')) throw new Error('MCP_PUBLIC_URL must be an HTTPS URL ending in /mcp, without credentials, query or fragment.');
+  const hostGuard = hostHeaderValidation(['localhost', '127.0.0.1', '[::1]', ...(publicUrl ? [publicUrl.hostname] : [])]);
+  const audience = (req: Request) => publicUrl?.href ?? `${req.protocol}://${req.get('host')}/mcp`;
+  const oauthStore = new OAuthStore(options.oauthStorePath, options.now);
+  const oauthServers = new Map<string, ReturnType<typeof createLoopOAuth>>();
+  const oauthFor = (req: Request) => {
+    const url = audience(req);
+    let oauth = oauthServers.get(url);
+    if (!oauth) {
+      if (oauthServers.size >= 8) throw new Error('Too many OAuth origins');
+      oauth = createLoopOAuth(url, tokens, oauthStore); oauthServers.set(url, oauth);
+    }
+    return oauth;
+  };
+  const oauthRouter = express.Router();
+  oauthRouter.use(hostGuard);
+  oauthRouter.use((req, res, next) => oauthFor(req).router(req, res, next));
+  const originGuard: RequestHandler = (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    const origin = req.get('origin');
+    const expected = new URL(audience(req)).origin;
+    if ((origin && origin !== expected) || req.get('sec-fetch-site') === 'cross-site') {
+      res.status(403).json({ jsonrpc: '2.0', error: { code: -32000, message: 'Origin not allowed' }, id: null }); return;
+    }
+    next();
+  };
+  const router = express.Router();
+  router.use(hostGuard, originGuard);
+  router.use(async (req, res, next) => {
+    try {
+      const authorization = req.get('authorization');
+      if (!authorization?.startsWith('Bearer ')) throw new ValidationError('Connect LOOP using OAuth.', 401);
+      const token = authorization.slice(7);
+      try { res.locals.mcpOwner = tokens.verify(token, 'access', audience(req)).owner; }
+      catch { res.locals.mcpOwner = (await oauthFor(req).provider.verifyAccessToken(token)).extra?.owner; }
+      next();
+    } catch {
+      res.setHeader('WWW-Authenticate', `Bearer resource_metadata="${new URL(audience(req)).origin}/.well-known/oauth-protected-resource/mcp", scope="loop:studio"`);
+      res.status(401).json({ jsonrpc: '2.0', error: { code: -32000, message: 'Connect or reauthorize the LOOP plugin to continue.' }, id: null });
+    }
+  });
+  router.use(express.json({ limit: '48kb' }));
+  router.post('/', async (req, res) => {
+    const server = createLoopMcpServer({ storage, service, tokens, owner: res.locals.mcpOwner, audience: audience(req) });
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    res.once('close', () => { void server.close().catch(() => {}); });
+    try {
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    } catch {
+      if (!res.headersSent) res.status(500).json({ jsonrpc: '2.0', error: { code: -32603, message: 'MCP request failed' }, id: null });
+      await server.close().catch(() => {});
+    }
+  });
+  // This stateless, JSON-response server has no standalone SSE stream or sessions.
+  router.all('/', (_req, res) => { res.setHeader('Allow', 'POST'); res.status(405).json({ jsonrpc: '2.0', error: { code: -32000, message: 'Method not allowed' }, id: null }); });
+  router.use((_req, res) => { res.status(404).json({ error: 'MCP endpoint not found' }); });
+  const errors: ErrorRequestHandler = (error, _req, res, _next) => {
+    res.status(error?.type === 'entity.too.large' ? 413 : 400).json({ jsonrpc: '2.0', error: { code: -32700, message: 'Invalid JSON request' }, id: null });
+  };
+  router.use(errors);
+  return {
+    router, oauthRouter, close: () => oauthStore.close(), guards: [hostGuard, originGuard],
+    issueAccessToken(req: Request, owner: string) { return { ...tokens.issue('access', owner, audience(req), 24 * 60 * 60_000), endpoint: audience(req), tokenType: 'Bearer' }; },
+  };
+}

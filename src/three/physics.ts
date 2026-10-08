@@ -1,7 +1,5 @@
 import type { RapierRigidBody } from '@react-three/rapier';
 
-/** A revolute joint owns all angular constraints: do not combine this with body axis locks. */
-export const STRAND_SWING_LIMIT = .18;
 export const STRAND_SWAY_SPEED = .18;
 export const BAG_FLOOR_Y = -2.2;
 
@@ -25,4 +23,10 @@ export function consumeSignatureChange(previous: { current: string }, next: stri
   if (previous.current === next) return false;
   previous.current = next;
   return true;
+}
+
+/** Contact resolution may displace overlapping replacements, but must never spin them. */
+export function limitStrandSpeed(body: RapierRigidBody) {
+  const w=body.angvel(), speed=Math.hypot(w.x,w.y,w.z);
+  if(speed>.85)body.setAngvel({x:w.x*.85/speed,y:w.y*.85/speed,z:w.z*.85/speed},false);
 }

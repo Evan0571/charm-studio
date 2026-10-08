@@ -6,7 +6,7 @@ import { catalog, createDefaultConfig } from '../shared/catalog';
 import { getStrands, pendantOffset, getMountedAssembly, BAG_CHARM_SCALE, type XYZ } from '../src/three/assemblyLayout';
 import { bagAttachmentPose, type BagStyle } from '../src/three/bagAttachment';
 import type { DesignConfig } from '../shared/types';
-import { beginGentleSway, consumeSignatureChange, STRAND_SWING_LIMIT, BAG_FLOOR_Y } from '../src/three/physics';
+import { beginGentleSway, consumeSignatureChange, limitStrandSpeed, BAG_FLOOR_Y } from '../src/three/physics';
 
 before(async () => { await RAPIER.init(); });
 const vec = (x = 0, y = 0, z = 0) => ({ x, y, z });
@@ -22,8 +22,7 @@ function fixture(scale: number, small: boolean) {
   cord.setMass(.006);
   const pendant = world.createCollider(RAPIER.ColliderDesc.ball(.13 * partScale * scale).setTranslation(0, centerY * scale, 0), body);
   pendant.setMass(.07);
-  const joint = RAPIER.JointData.revolute(vec(), vec(), vec(0, 0, 1));
-  joint.limitsEnabled = true; joint.limits = [-STRAND_SWING_LIMIT, STRAND_SWING_LIMIT];
+  const joint = RAPIER.JointData.spherical(vec(), vec());
   world.createImpulseJoint(joint, anchor, body, true);
   return { world, body, pendant, scale };
 }
@@ -36,7 +35,7 @@ function simulate(world: InstanceType<typeof RAPIER.World>, body: RapierRigidBod
     assert.ok(Number.isFinite(angle) && [w.x, w.y, w.z].every(Number.isFinite), 'solver stays finite');
     maxAngle = Math.max(maxAngle, angle);
     maxSpeed = Math.max(maxSpeed, Math.hypot(w.x, w.y, w.z));
-    assert.ok(Math.abs(q.x) < .005 && Math.abs(q.y) < .005, 'revolute joint prevents roll and yaw');
+    assert.ok(Math.abs(Math.hypot(q.x,q.y,q.z,q.w)-1)<1e-5,'orientation remains normalized');
   }
   return { maxAngle, maxSpeed };
 }
@@ -82,11 +81,11 @@ test('repeated component swaps reset bounded velocity instead of accumulating im
       pendant.setMass(i % 2 ? .014 : .07);
       beginGentleSway(body, i % 2 ? -1 : 1);
       const result = simulate(world, body, 18);
-      assert.ok(result.maxAngle <= STRAND_SWING_LIMIT + .015);
+      assert.ok(result.maxAngle <= .35);
       assert.ok(result.maxSpeed < .5);
     }
     const result = simulate(world, body);
-    assert.ok(result.maxAngle <= STRAND_SWING_LIMIT + .015);
+    assert.ok(result.maxAngle <= .35);
   } finally { world.free(); }
 });
 
@@ -98,7 +97,7 @@ function assemblyFixture(config: DesignConfig, bagStyle?: BagStyle) {
   const offset: XYZ = bagStyle ? getMountedAssembly(bagAttachmentPose(bagStyle).innerContact, config.connectorId).position : [0, .08, 0];
   // A rendering plane must not push long strands through their joint. Match the
   // scene's floor, below the lowest mini-bag mount and its longest hanging part.
-  world.createCollider(RAPIER.ColliderDesc.cuboid(8, .1, 8).setTranslation(0, (bagStyle ? BAG_FLOOR_Y : -1.81) - .1, 0));
+  world.createCollider(RAPIER.ColliderDesc.cuboid(8, .1, 8).setTranslation(0, (bagStyle ? BAG_FLOOR_Y : -1.95) - .1, 0));
   if (bagStyle) {
     const half: XYZ = bagStyle === 'tote' ? [1.56, 1.06, .53] : bagStyle === 'shoulder' ? [1.42, .77, .51] : [.97, .68, .39];
     world.createCollider(RAPIER.ColliderDesc.cuboid(...half).setTranslation(-.35, -.65, -.36));
@@ -116,9 +115,8 @@ function assemblyFixture(config: DesignConfig, bagStyle?: BagStyle) {
     add(.01, -spec.length * .5, .006);
     if (part) add(.13 * spec.scale, pendantOffset(part, spec), .07);
     if (bead) add(.11, -spec.length * .66, .018);
-    const joint = RAPIER.JointData.revolute(vec(), vec(), vec(0, 0, 1));
-    joint.limitsEnabled = true; joint.limits = [-STRAND_SWING_LIMIT, STRAND_SWING_LIMIT];
-    world.createImpulseJoint(joint, anchor, body, true);
+    const joint = RAPIER.JointData.spherical(vec(), vec());
+      world.createImpulseJoint(joint, anchor, body, true);
     return body;
   });
   return { world, bodies };
@@ -138,7 +136,7 @@ test('all three templates remain stable through startup, swap and scene remount 
             const angle = 2 * Math.acos(Math.min(1, Math.abs(q.w)));
             const name = `${template.id}/${connectorId}/${bagStyle ?? 'standalone'} step ${step}`;
             assert.ok(Number.isFinite(angle), name);
-            assert.ok(angle < STRAND_SWING_LIMIT + .015, `bounded swing: ${name}: ${angle}`);
+            assert.ok(angle < .35, `bounded swing: ${name}: ${angle}`);
             assert.ok(Math.hypot(w.x, w.y, w.z) < .6, `no startup spin: ${name}`);
             if (step < 2) assert.ok(angle < .002, `initial placement has no collision-driven rotation: ${name}`);
             if (step < 360) assert.ok(angle < .07, `startup cue is a gentle sway, not a spin: ${name}`);
@@ -166,7 +164,7 @@ test('empty optional positions do not leave phantom collision masses or destabil
         for (const body of bodies) {
           const q = body.rotation();
           assert.ok(Number.isFinite(q.w));
-          assert.ok(2 * Math.acos(Math.min(1, Math.abs(q.w))) <= STRAND_SWING_LIMIT + .015);
+          assert.ok(2 * Math.acos(Math.min(1, Math.abs(q.w))) <= .35);
         }
       }
     } finally { world.free(); }

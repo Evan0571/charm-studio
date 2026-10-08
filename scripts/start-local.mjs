@@ -50,7 +50,7 @@ async function isStudio(url) {
     const response = await fetch(`${url}/api/catalog`, { signal: AbortSignal.timeout(1500) });
     if (!response.ok) return false;
     const data = await response.json();
-    return data.currency === 'CNY' && Array.isArray(data.parts) &&
+    return data.currency === 'USD' && Array.isArray(data.parts) &&
       ['cord', 'chain', 'hero'].every(id => data.templates?.some(template => template.id === id));
   } catch { return false; }
 }

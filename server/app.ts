@@ -1,22 +1,32 @@
 import express, { type ErrorRequestHandler, type Request, type Response } from 'express';
 import cookieParser from 'cookie-parser';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { catalog } from '../shared/catalog';
-import { quoteConfig, validateConfig, validateDesignId, validateIdempotencyKey, validateName, ValidationError } from '../shared/domain';
-import type { Order, SavedDesign } from '../shared/types';
+import { quoteConfig, validateConfig, validateDesignId, ValidationError } from '../shared/domain';
 import type { Storage } from './storage';
+import { createStylistService, type StylistService } from './stylist';
+import { createStudioService } from './studio-service';
+import { createMcpHttp } from './mcp/http';
+import type { McpOptions } from './mcp/auth';
+import { visitor } from './visitor';
 
-const cookieName = 'loop_guest';
 const ownerOf = (res: Response): string => res.locals.ownerId as string;
-const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 function bodyOf(req: Request): Record<string, unknown> {
   if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new ValidationError('请求格式无效。');
   return req.body;
 }
 
-export function createApp(storage: Storage) {
+export function createApp(storage: Storage, stylist: StylistService = createStylistService(), mcpOptions: McpOptions = {}) {
   const app = express();
+  const service = createStudioService(storage, stylist);
+  const mcp = createMcpHttp(storage, service, mcpOptions);
   app.disable('x-powered-by');
+  app.locals.closeMcp = mcp.close;
+  app.use((req, res, next) => {
+    if (/^\/(?:\.well-known(?:\/|$)|authorize(?:\/|$)|token(?:\/|$)|register(?:\/|$)|revoke(?:\/|$)|oauth(?:\/|$))/.test(req.path)) mcp.oauthRouter(req, res, next);
+    else next();
+  });
+  app.use('/mcp', mcp.router);
+  app.use('/api/mcp', ...mcp.guards);
   app.use('/api', (req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -34,15 +44,7 @@ export function createApp(storage: Storage) {
   });
   app.use('/api', express.json({ limit: '48kb' }));
   app.use('/api', cookieParser());
-  app.use('/api', (req, res, next) => {
-    let token = req.cookies?.[cookieName];
-    if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) {
-      token = randomBytes(32).toString('hex');
-      res.cookie(cookieName, token, { httpOnly: true, sameSite: 'lax', secure: req.secure || process.env.COOKIE_SECURE === 'true', maxAge: 1000 * 60 * 60 * 24 * 365, path: '/' });
-    }
-    res.locals.ownerId = hash(token);
-    next();
-  });
+  app.use('/api', visitor);
   app.get('/api/health', async (_req, res) => {
     try {
       await storage.checkHealth();
@@ -52,22 +54,16 @@ export function createApp(storage: Storage) {
     }
   });
   app.get('/api/catalog', (_req, res) => { res.json(catalog); });
+  app.post('/api/mcp/token', (req, res) => { res.json(mcp.issueAccessToken(req, ownerOf(res))); });
+  app.get('/api/ai/status', (_req, res) => { res.json({ configured: stylist.configured() }); });
+  app.post('/api/ai/design', async (req, res) => {
+    res.json(await service.suggest(ownerOf(res), bodyOf(req)));
+  });
   app.post('/api/quote', (req, res) => { res.json(quoteConfig(validateConfig(bodyOf(req).config))); });
   app.get('/api/designs', async (_req, res) => { res.json(await storage.listDesigns(ownerOf(res))); });
   app.post('/api/designs', async (req, res) => {
-    const body = bodyOf(req);
-    const owner = ownerOf(res);
-    const config = validateConfig(body.config);
-    const name = validateName(body.name);
-    let previous: SavedDesign | undefined;
-    if (body.id !== undefined) {
-      previous = await storage.getDesign(owner, validateDesignId(body.id));
-      if (!previous) throw new ValidationError('没有找到这份设计。', 404);
-    }
-    const now = new Date().toISOString();
-    const design: SavedDesign = { id: previous?.id ?? randomUUID(), name, config, createdAt: previous?.createdAt ?? now, updatedAt: now };
-    await storage.putDesign(owner, design);
-    res.status(previous ? 200 : 201).json(design);
+    const saved = await service.saveDesign(ownerOf(res), bodyOf(req));
+    res.status(saved.created ? 201 : 200).json(saved.design);
   });
   app.delete('/api/designs/:id', async (req, res) => {
     const deleted = await storage.deleteDesign(ownerOf(res), validateDesignId(req.params.id));
@@ -76,21 +72,8 @@ export function createApp(storage: Storage) {
   });
   app.get('/api/orders', async (_req, res) => { res.json(await storage.listOrders(ownerOf(res))); });
   app.post('/api/orders', async (req, res) => {
-    const body = bodyOf(req);
-    const config = validateConfig(body.config);
-    const designName = validateName(body.designName, '我的包挂');
-    const key = validateIdempotencyKey(body.idempotencyKey);
-    const owner = ownerOf(res);
-    const requestHash = hash(JSON.stringify({ designName, config: { ...config, lockedSlots: [...config.lockedSlots].sort() } }));
-    const existing = await storage.getOrderByKey(owner, key);
-    if (existing) {
-      if (existing.requestHash !== requestHash) throw new ValidationError('这次提交的设计已发生变化，请重新确认订单。', 409);
-      res.json(existing.order); return;
-    }
-    const order: Order = { id: randomUUID(), designName, config, quote: quoteConfig(config), status: 'test_confirmed', createdAt: new Date().toISOString() };
-    const stored = await storage.createOrder(owner, key, requestHash, order);
-    if (stored.requestHash !== requestHash) throw new ValidationError('这次提交的设计已发生变化，请重新确认订单。', 409);
-    res.status(stored.order.id === order.id ? 201 : 200).json(stored.order);
+    const saved = await service.createOrder(ownerOf(res), bodyOf(req));
+    res.status(saved.created ? 201 : 200).json(saved.order);
   });
   app.use('/api', (_req, res) => { res.status(404).json({ error: '接口不存在。' }); });
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {

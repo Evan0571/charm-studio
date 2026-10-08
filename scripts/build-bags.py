@@ -118,26 +118,39 @@ def charm_keeper(x, bar_y, ring_z, surface_z, leather, thread, metal):
     tube('Structural brass D-ring captured by keeper',ring,wire,metal,True)
     return [x,bar_y-radius+wire,ring_z]
 
+def body_point(t, a, width=4.4, depth=1.24, bottom=-1.7, top=.7, saddle=False, inner=False):
+    if saddle:
+        w=width*(.73+.27*math.sin(t*math.pi/2));d=depth*(.76+.24*math.sin(t*math.pi))
+    else:
+        w=width*(.84+.16*t);d=depth*(.77+.23*math.sin(t*math.pi*.85))
+    if inner:w-=.08;d-=.08
+    c=math.cos(a);sn=math.sin(a)
+    x=w/2*math.copysign(abs(c)**.38,c)
+    y=d/2*math.copysign(abs(sn)**.34,sn)
+    z=bottom+(top-bottom)*t-.075*abs(sn)**4*t**6
+    y+=(.016*math.sin(t*13+x*1.8)+.01*math.sin(t*23-x))*math.sin(t*math.pi)*abs(c)**5
+    if inner:z+=.035*(1-t)
+    return Vector((x,y,z))
+
+def surface_detail(body, t, a, offset, radius, **shape):
+    # Project onto the actual triangulated shell, including its soft gusset folds.
+    expected=body_point(t,a,**shape)
+    found,point,normal,_=body.closest_point_on_mesh(expected)
+    assert found
+    if normal.dot(Vector((point.x,point.y,0)))<0:normal=-normal
+    placed=point+normal*offset
+    assert (placed-point).length<radius, 'seam must intersect the leather surface'
+    return tuple(placed)
+
 def make_body(name,material,lining,width=4.4,depth=1.24,bottom=-1.7,top=.7,saddle=False):
     N=96;L=36;verts=[];faces=[];uv=[]
     for inner in range(2):
         for j in range(L+1):
             t=j/L
-            if saddle:
-                w=width*(.73+.27*math.sin(t*math.pi/2));d=depth*(.76+.24*math.sin(t*math.pi))
-            else:
-                w=width*(.84+.16*t);d=depth*(.77+.23*math.sin(t*math.pi*.85))
-            if inner:w-=.08;d-=.08
             for k in range(N+1):
-                a=2*math.pi*k/N;c=math.cos(a);s=math.sin(a)
-                x=w/2*math.copysign(abs(c)**.38,c)
-                y=d/2*math.copysign(abs(s)**.34,s)
-                z=bottom+(top-bottom)*t
-                z-=.075*abs(s)**4*t**6
-                # restrained leather softness, most visible at side gussets
-                y+=(.016*math.sin(t*13+x*1.8)+.01*math.sin(t*23-x))*math.sin(t*math.pi)*abs(c)**5
-                if inner:z+=.035*(1-t)
-                verts.append((x,y,z));uv.append((0,t*1.6))
+                a=2*math.pi*k/N
+                verts.append(tuple(body_point(t,a,width,depth,bottom,top,saddle,bool(inner))))
+                uv.append((0,t*1.6))
             # Arc-length UVs avoid stretched grain at the broad front/back centers.
             start=len(verts)-(N+1)
             distance=[0]
@@ -168,10 +181,11 @@ def tote():
     lining=mat('Suede lining',(.095,.066,.045),.93)
     thread=mat('Saddle stitching',(.48,.3,.17),.81)
     gold=mat('Brushed warm brass',(.65,.4,.14),.22,.88)
-    make_body('Tote / hollow leather shell',leather,lining)
+    body=make_body('Tote / hollow leather shell',leather,lining)
+    bpy.context.view_layer.update()
     for side in [-1,1]:
         y=side*.57
-        pts=[(2.16*math.cos(a),.53*math.copysign(abs(math.sin(a))**.34,math.sin(a)),.665-.075*abs(math.sin(a))**4) for a in [2*math.pi*i/128 for i in range(128)]]
+        pts=[surface_detail(body,1,2*math.pi*i/192,.012,.03) for i in range(192)]
         if side==1:tube('Rolled rim binding',pts,.03,edges,True)
         for x in [-1.28,1.28]:
             rounded('Handle attachment leather tab',(x,y,.3),(.25,.065,.68),leather,.06)
@@ -183,12 +197,11 @@ def tote():
         tube('Rolled leather top handle',handle,.074,leather)
         stitch('Handle edge stitching',[(x,yy+side*.072,z) for x,yy,z in handle],thread,.0045)
     for sx in [-1,1]:
-        seam=[]
-        for i in range(56):
-            t=i/55;x=sx*(1.67+.37*t);z=-1.6+2.14*t;y=-(.47+.12*math.sin(t*math.pi*.85))
-            seam.append((x,y,z))
+        angle=-.60 if sx==1 else -math.pi+.60
+        seam=[surface_detail(body,.035+i/55*.925,angle,.010,.019) for i in range(56)]
         tube('Side seam piping',seam,.019,edges)
-        stitch('Side seam stitch',[(x-sx*.052,y-.025,z) for x,y,z in seam],thread,.005)
+        sewn=[surface_detail(body,.035+i/55*.925,angle-sx*.07,.0025,.005) for i in range(56)]
+        stitch('Side seam stitch',sewn,thread,.005)
     # Quiet original hardware: no third-party marks or logos.
     rounded('Front signature brass plate',(0,-.618,-.12),(.36,.032,.072),gold,.017)
     contact=charm_keeper(1.72,.45,.69,.535,leather,thread,gold)
@@ -201,7 +214,9 @@ def shoulder():
     lining=mat('Dark suede interior',(.11,.075,.046),.92)
     thread=mat('Ivory stitching',(.76,.72,.64),.8)
     gold=mat('Champagne hardware',(.71,.53,.27),.2,.88)
-    make_body('Shoulder / hollow rounded leather shell',leather,lining,width=3.82,depth=1.08,bottom=-1.7,top=.55,saddle=True)
+    body_shape=dict(width=3.82,depth=1.08,bottom=-1.7,top=.55,saddle=True)
+    body=make_body('Shoulder / hollow rounded leather shell',leather,lining,**body_shape)
+    bpy.context.view_layer.update()
     # Rounded sculpted flap with broad softened corners and a small brass lock.
     rounded('Soft front flap',(0,-.527,.05),(3.60,.125,1.13),leather,.25)
     flap=[]
@@ -216,9 +231,8 @@ def shoulder():
     tube('Wide rolled shoulder strap',strap,.068,leather)
     stitch('Shoulder strap seam',[(x,y-.066,z) for x,y,z in strap],thread,.0045)
     for side in [-1,1]:
-        seam=[]
-        for i in range(64):
-            t=i/63;seam.append((side*(1.42+.35*math.sin(t*math.pi/2)),-(.43+.06*math.sin(t*math.pi)),-1.57+t*1.99))
+        angle=-.62 if side==1 else -math.pi+.62
+        seam=[surface_detail(body,.05+i/63*.89,angle,.008,.016,**body_shape) for i in range(64)]
         tube('Side panel piping',seam,.016,edges)
     contact=charm_keeper(1.55,.40,.70,.586,leather,thread,gold)
     export('atelier-shoulder',contact)

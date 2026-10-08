@@ -1,0 +1,15 @@
+.language-switcher{display:inline-flex;align-items:center;gap:6px;position:relative;flex:none;color:#756a5e;border:1px solid #ded6cb;border-radius:999px;padding:0 10px;min-height:36px;background:#fffdf8;font-size:12px}
+.language-switcher select{font:inherit;color:inherit;appearance:none;cursor:pointer;background:transparent;border:0;border-radius:inherit;margin:0;padding:8px 14px 8px 0;min-width:68px;outline:0}
+.language-switcher>svg:last-child{position:absolute;right:10px;pointer-events:none}
+.language-switcher:focus-within{outline:2px solid #aa7860;outline-offset:3px}
+.landing-header-actions{display:flex;align-items:center;gap:14px}
+.landing-header .landing-start{white-space:nowrap}
+html[lang=en] .landing-hero h1{line-height:1.14;letter-spacing:-2.5px}
+html[lang=en] .landing-section-heading h2,html[lang=en] .landing-how h2{line-height:1.25}
+html[lang=en] .landing-reassurance{flex-wrap:wrap;line-height:1.6}
+html[lang=en] .template-choice strong{line-height:1.3}
+html[lang=en] .slots-list button{white-space:normal;text-align:left}
+html[lang=en] .scene-toolbar{flex-wrap:wrap}
+@media(max-width:900px){.app-header-discovery .demo-label{display:none}.app-header-discovery nav{gap:18px}.app-header-discovery .header-inner{gap:20px}}
+@media(max-width:600px){.landing-header-actions{gap:8px}.landing-header .landing-start{padding:9px 12px;gap:8px}.language-switcher{font-size:11px;min-height:34px;padding:0 8px}.language-switcher select{min-width:60px}.app-header-discovery .header-inner{flex-wrap:wrap;gap:6px 12px}.app-header-discovery .header-end{margin-left:auto}.app-header-discovery .header-inner>nav{order:3;width:100%;justify-content:center;gap:24px}.app-header-discovery nav button{padding:11px 0}.app-header-discovery .help-button{display:none}html[lang=en] .landing-hero-actions{flex-wrap:wrap}html[lang=en] .preview-hint{max-width:65%;line-height:1.5}html[lang=en] .bag-selector{flex-wrap:wrap}html[lang=en] .bag-selector>div{flex-wrap:wrap}html[lang=en] .bag-color-heading small{font-size:10px}html[lang=en] .landing-how h2{font-size:30px}}
+@media(max-width:370px){.landing-page .landing-header{gap:10px;padding:0 16px}.landing-header .landing-start{padding:9px 10px;font-size:11px}.landing-header .landing-start>svg{display:none}.landing-header-actions{gap:6px}}

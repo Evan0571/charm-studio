@@ -5,11 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch server/index.ts",
-    "build": "tsc --noEmit && vite build",
-    "start": "NODE_ENV=production tsx server/index.ts",
-    "test": "tsx --test tests/*.test.ts"
+    "build": "tsc --noEmit && vite build && pnpm build:mcp-ui",
+    "start": "node --import tsx scripts/start-production.mjs",
+    "setup:check": "node scripts/doctor.mjs",
+    "test": "tsx --test tests/*.test.ts",
+    "mcp:smoke": "node --import tsx scripts/mcp-smoke.mjs",
+    "build:mcp-ui": "vite build --config vite.mcp.config.ts",
+    "chatgpt:connect": "node scripts/chatgpt-connect.mjs",
+    "chatgpt:ui-check": "node --import tsx scripts/chatgpt-browser-check.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "@react-three/drei": "10.7.9",
     "@react-three/fiber": "9.8.1",
     "@react-three/rapier": "2.2.0",
@@ -20,7 +27,8 @@
     "lucide-react": "0.468.0",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "three": "0.186.1"
+    "three": "0.186.1",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@dimforge/rapier3d-compat": "0.19.2",
