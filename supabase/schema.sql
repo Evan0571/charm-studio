@@ -30,3 +30,11 @@ CREATE INDEX IF NOT EXISTS charm_orders_owner_created_idx ON public.charm_orders
 ALTER TABLE public.charm_orders ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.charm_orders FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT, INSERT ON public.charm_orders TO service_role;
+
+-- Supabase can create this event-trigger helper when automatic RLS is selected.
+-- Keep the trigger active but prevent clients from invoking its definer function.
+DO $$ BEGIN
+  IF to_regprocedure('public.rls_auto_enable()') IS NOT NULL THEN
+    REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
+  END IF;
+END $$;
