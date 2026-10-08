@@ -84,6 +84,40 @@ def torus(name,loc,major,minor,material,rot=(math.pi/2,0,0)):
 def stitch(name,pts,material,radius=.006,step=2):
     for i in range(0,len(pts)-1,step):tube(name,pts[i:i+2],radius,material)
 
+def charm_keeper(x, bar_y, ring_z, surface_z, leather, thread, metal):
+    """A sewn, folded leather keeper physically captures the D-ring's top bar.
+
+    Parameters use the exported GLB frame (Y-up, front +Z), not Blender's Z-up.
+    The inner bottom of the D is the hanging contact, not the ring center.
+    """
+    radius=.14; wire=.022; width=.13; thickness=.018
+    def point(y,z,xx=x):return (xx,-z,y)
+    # Ends sit against the bag panel. A folded strip goes behind/under/in front
+    # of the horizontal brass bar, so there is a structural leather connection.
+    rounded('Sewn charm keeper base',point(bar_y+.125,surface_z+.016),(.175,.032,.20),leather,.023)
+    path=[(bar_y+.21,surface_z+.02),(bar_y+.105,surface_z+.024),(bar_y,ring_z-.052)]
+    for i in range(1,21):
+        a=math.pi+math.pi*i/20
+        path.append((bar_y+math.sin(a)*.052,ring_z+math.cos(a)*.052))
+    path.extend([(bar_y+.105,surface_z+.058),(bar_y+.21,surface_z+.048)])
+    verts=[];uv=[];faces=[]
+    for i,(y,z) in enumerate(path):
+        prev=Vector(path[max(0,i-1)]);nxt=Vector(path[min(len(path)-1,i+1)])
+        tangent=(nxt-prev).normalized();ny,nz=-tangent[1],tangent[0]
+        for sx,side in [(-1,-1),(1,-1),(1,1),(-1,1)]:
+            verts.append(point(y+ny*thickness*.5*side,z+nz*thickness*.5*side,x+sx*width*.5));uv.append(((sx+1)/2,i/len(path)))
+    for i in range(len(path)-1):
+        for k in range(4):faces.append((i*4+k,i*4+(k+1)%4,(i+1)*4+(k+1)%4,(i+1)*4+k))
+    faces.extend([(3,2,1,0),tuple((len(path)-1)*4+k for k in range(4))])
+    mesh('Folded leather keeper around D-ring bar',verts,faces,leather,uv)
+    for dx in [-.047,.047]:
+        stitch('Keeper stitch through both leather layers',[point(bar_y+.10+i*.024,surface_z+.072,x+dx) for i in range(5)],thread,.004)
+    # A closed D has a flat top bar and a downward semicircle. The keeper wraps
+    # the bar, while the lower arc is clear for the charm connector to interlock.
+    ring=[point(bar_y+math.sin(a)*radius,ring_z,x+math.cos(a)*radius) for a in [math.pi+math.pi*i/40 for i in range(41)]]
+    tube('Structural brass D-ring captured by keeper',ring,wire,metal,True)
+    return [x,bar_y-radius+wire,ring_z]
+
 def make_body(name,material,lining,width=4.4,depth=1.24,bottom=-1.7,top=.7,saddle=False):
     N=96;L=36;verts=[];faces=[];uv=[]
     for inner in range(2):
@@ -157,9 +191,8 @@ def tote():
         stitch('Side seam stitch',[(x-sx*.052,y-.025,z) for x,y,z in seam],thread,.005)
     # Quiet original hardware: no third-party marks or logos.
     rounded('Front signature brass plate',(0,-.618,-.12),(.36,.032,.072),gold,.017)
-    rounded('Charm keeper leather tab',(1.77,-.61,.47),(.17,.08,.35),leather,.035)
-    torus('CHARM_ANCHOR',(1.77,-.7,.68),.102,.025,gold)
-    export('atelier-tote', [1.77,.68,.7])
+    contact=charm_keeper(1.72,.45,.69,.535,leather,thread,gold)
+    export('atelier-tote',contact)
 
 def shoulder():
     clear()
@@ -187,9 +220,8 @@ def shoulder():
         for i in range(64):
             t=i/63;seam.append((side*(1.42+.35*math.sin(t*math.pi/2)),-(.43+.06*math.sin(t*math.pi)),-1.57+t*1.99))
         tube('Side panel piping',seam,.016,edges)
-    rounded('Charm keeper',(1.60,-.47,.50),(.15,.095,.34),leather,.03)
-    torus('CHARM_ANCHOR',(1.62,-.60,.69),.104,.026,gold)
-    export('atelier-shoulder', [1.62,.69,.60])
+    contact=charm_keeper(1.55,.40,.70,.586,leather,thread,gold)
+    export('atelier-shoulder',contact)
 
 def export(name,anchor):
     # Convert curves and applied bevel geometry, then merge by material for modest draw calls.
@@ -205,7 +237,7 @@ def export(name,anchor):
         if len(objs)>1:bpy.ops.object.join()
         bpy.context.object.name=namepart
         bpy.ops.object.select_all(action='DESELECT')
-    a=bpy.data.objects.new('charm_attachment',None);bpy.context.collection.objects.link(a);a.location=(anchor[0],-anchor[2],anchor[1]);a['purpose']='Top attachment center in GLB preview coordinates'
+    a=bpy.data.objects.new('charm_attachment',None);bpy.context.collection.objects.link(a);a.location=(anchor[0],-anchor[2],anchor[1]);a['purpose']='Inner bottom contact surface of structural D-ring, in GLB preview coordinates';a['ringPlane']='XY';a['wireRadius']=.022;a['ringRadius']=.14
     bpy.ops.export_scene.gltf(filepath=str(OUT/f'{name}.glb'),export_format='GLB',export_yup=True,export_apply=True,export_extras=True,export_cameras=False,export_lights=False)
     for im in bpy.data.images:
         if im.filepath and im.source=='FILE':im.filepath=bpy.path.relpath(bpy.path.abspath(im.filepath),start=str(SOURCE))

@@ -23,6 +23,7 @@
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@dimforge/rapier3d-compat": "0.19.2",
     "@types/cookie-parser": "1.4.9",
     "@types/express": "5.0.3",
     "@types/node": "24.5.2",

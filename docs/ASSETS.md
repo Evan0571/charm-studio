@@ -4,12 +4,14 @@ Updated 2026-10-08. The 3D prototype uses original bag geometry with photographe
 
 ## Original geometry
 
-| File | Description | Attachment center in GLB local coordinates |
+| File | Description | Inner hanging contact in GLB local coordinates |
 | --- | --- | --- |
-| `public/assets/models/atelier-tote.glb` | Open cognac leather tote, suede lining, rolled top handles, stitched leather tabs, piping, brass hardware | `[1.77, 0.68, 0.70]` |
-| `public/assets/models/atelier-shoulder.glb` | Ivory shoulder bag, lining, rounded flap, clasp, strap, side piping | `[1.62, 0.69, 0.60]` |
+| `public/assets/models/atelier-tote.glb` | Open cognac leather tote, suede lining, rolled top handles, stitched leather tabs, piping, brass hardware | `[1.72, 0.332, 0.69]` |
+| `public/assets/models/atelier-shoulder.glb` | Ivory shoulder bag, lining, rounded flap, clasp, strap, side piping | `[1.55, 0.282, 0.70]` |
 
-Both files contain a `charm_attachment` empty node at the attachment center. GLB coordinates are Y-up, front +Z. Preview units are arbitrary: tote width is 4.4, body extends from Y=-1.7 to Y=0.7; shoulder width is 3.82, body extends from Y=-1.7 to Y=0.55. No branded logo or product photo is included.
+Both files contain a `charm_attachment` empty node at the lowest **inside surface** of the structural D-ring. This is the contact where a hanging connector bears weight, not the ring center or the connector's outer tip. GLB coordinates are Y-up, front +Z. Preview units are arbitrary: tote width is 4.4, body extends from Y=-1.7 to Y=0.7; shoulder width is 3.82, body extends from Y=-1.7 to Y=0.55. No branded logo or product photo is included.
+
+The D-ring is fixed to the bag by a folded leather keeper: its sewn ends rest on the leather panel, and the middle passes behind, under, and in front of the horizontal brass bar. This replaces the earlier decorative floating torus. Every D-ring lies in the XY plane (normal +Z), has a downward semicircle with centerline radius 0.14 and wire radius 0.022. The top-bar centers are `[1.72, 0.45, 0.69]` for tote and `[1.55, 0.40, 0.70]` for shoulder. The pure module `src/three/bagAttachment.ts` supplies `bagAttachmentPose` for the viewer and geometry regression tests, and `bags.tsx` re-exports it. The mini bag uses the same construction with bar center `[0.88, 0.04, 0.60]` and inner hanging contact `[0.88, -0.078, 0.60]`.
 
 Geometry was authored for this project in Blender. The source script is `scripts/build-bags.py`. Editable `.blend` files are in `assets-source/`; 600 px beauty review renders are in `docs/asset-previews/`. These source and review files are outside the website's public directory. The original script and geometry have no third-party model license requirement; their embedded leather textures retain the CC0 provenance below.
 
@@ -21,7 +23,7 @@ Rebuild from the repository root (Blender 5.2.2 LTS used for the checked-in outp
 
 Each GLB embeds its textures and works without remote texture requests. Source materials are also separately available for the procedural charms and leather straps in the viewer. The `.blend` files reference those materials using repository-relative paths; the generator resolves its inputs from the repository structure. Body UVs use perimeter arc length to avoid stretched grain across the broad front panel, and the normal strength is kept at 0.14.
 
-The tote has 32,764 triangles and the shoulder bag has 24,524. Each uses five mesh nodes and six material primitives, including the interior lining. The exports were inspected for valid GLB headers, embedded image buffers, normal and roughness texture references, and the attachment node. Beauty renders were visually reviewed in Blender with the same studio HDRI used by the web preview.
+The tote has 33,060 triangles and the shoulder bag has 24,820. Each uses five mesh nodes and six material primitives, including the interior lining. The exports were inspected for valid GLB headers, embedded image buffers, normal and roughness texture references, and the attachment node. Beauty renders were visually reviewed in Blender with the same studio HDRI used by the web preview. Attachment metadata records the D-ring plane, wire radius and centerline radius, and matches the viewer's hanging-contact coordinates.
 
 ## Third-party materials and lighting
 

@@ -11,7 +11,7 @@ const post=(body:unknown)=>({method:'POST',body:JSON.stringify(body)});
 const clone=(c:DesignConfig):DesignConfig=>structuredClone(c);
 type ModalName='save'|'checkout'|'receipt'|'help'|null;
 const visualKey=(config:DesignConfig)=>JSON.stringify([config.templateId,config.connectorId,config.cordColor,config.metalTone,Object.entries(config.slots).sort(([a],[b])=>a.localeCompare(b))]);
-const previewCacheKey='loop-3d-preview-stills-v1';
+const previewCacheKey='loop-3d-preview-stills-v2';
 function readPreviewCache():Record<string,string>{try{const entries=Object.entries(JSON.parse(localStorage.getItem(previewCacheKey)||'{}')).filter((entry):entry is [string,string]=>typeof entry[1]==='string'&&entry[1].startsWith('data:image/')&&entry[1].length<1500000);return Object.fromEntries(entries.slice(-8));}catch{return {};}}
 
 
