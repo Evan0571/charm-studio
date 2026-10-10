@@ -14,7 +14,8 @@ const resource = await client.readResource({ uri: 'ui://loop/design-v1.html' });
 const content = resource.contents[0];
 if (!('text' in content)) throw new Error('Missing widget HTML');
 const frame = document.getElementById('widget') as HTMLIFrameElement;
-const bridge = new AppBridge(client, { name: 'LOOP local verification host', version: '1.0.0' }, { serverTools: {}, serverResources: {}, updateModelContext: {}, logging: {} }, { hostContext: { theme: 'light', displayMode: 'inline', containerDimensions: { width: 700 } } });
+const bridge = new AppBridge(client, { name: 'LOOP local verification host', version: '1.0.0' }, { serverTools: {}, serverResources: {}, updateModelContext: {}, logging: {} }, { hostContext: { theme: 'light', displayMode: 'inline', containerDimensions: { width: frame.clientWidth } } });
+window.addEventListener('resize', () => bridge.setHostContext({ theme: 'light', displayMode: 'inline', containerDimensions: { width: frame.clientWidth } }));
 const trace: unknown[] = [];
 bridge.onupdatemodelcontext = async context => { trace.push(context); return {}; };
 bridge.onsizechange = ({ height }) => { if (height) frame.style.height = `${height}px`; };
@@ -26,6 +27,11 @@ const csp = `default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval'; 
 frame.srcdoc = content.text.replace('<head>', `<head><meta http-equiv="Content-Security-Policy" content="${csp}">`);
 Object.assign(window, { loopHarness: {
   trace, client, bridge,
+  async chooseSlot(selectionSlot: string) {
+    const latest = (trace.at(-1) as any)?.structuredContent ?? args;
+    const result = await client.callTool({ name: 'loop_preview_design', arguments: { name: latest.name, config: latest.config, ...(latest.designId ? { designId: latest.designId } : {}), selectionSlot } }) as CallToolResult;
+    await bridge.sendToolResult(result);
+  },
   async revise() {
     const latest = (trace.at(-1) as any)?.structuredContent ?? args;
     const edited = { name: '银色版 · 保留主挂饰', config: { ...latest.config, metalTone: 'silver' }, ...(latest.designId ? { designId: latest.designId } : {}) };

@@ -16,7 +16,7 @@ import { createLeatherBandGeometry } from './three/connectorGeometry';
 import { constrainPan, previewTarget } from './three/previewCamera';
 
 type XYZ=[number,number,number];
-export interface CharmSceneProps {config:DesignConfig;catalog:Catalog;bag:boolean;bagStyle:BagStyle;bagColor?:string;selectedSlot?:string;onSelectSlot?:(id:string)=>void;zoom?:number;panMode?:boolean;autoRotate?:boolean;motion?:boolean;resetKey?:number;onReady?:()=>void;onError?:(message:string)=>void;onCapture?:(url:string)=>void;}
+export interface CharmSceneProps {config:DesignConfig;catalog:Catalog;bag:boolean;bagStyle:BagStyle;bagColor?:string;selectedSlot?:string;onSelectSlot?:(id:string)=>void;zoom?:number;panMode?:boolean;autoRotate?:boolean;motion?:boolean;physics?:boolean;resetKey?:number;onReady?:()=>void;onError?:(message:string)=>void;onCapture?:(url:string)=>void;}
 function Cord({length,color,radius=.015}:{length:number;color:string;radius?:number}){
   const strands=useMemo(()=>Array.from({length:3},(_,j)=>Array.from({length:Math.ceil(length*65)+1},(_,i)=>{const t=i/Math.ceil(length*65);const a=t*length*66+j*Math.PI*2/3;return [Math.cos(a)*radius*.55,-t*length,Math.sin(a)*radius*.55] as XYZ;})),[length,radius]);
   return <group>{strands.map((points,i)=><Tube key={i} points={points} radius={radius*.62} color={i===1?new THREE.Color(color).multiplyScalar(1.09).getStyle():color} segments={Math.ceil(length*65)}/>)}</group>;
@@ -99,6 +99,25 @@ function Assembly({config,catalog,selectedSlot,onSelectSlot,motion=true}:{config
   });
   return <group><Connector leather={config.connectorId==='leather'} tone={config.metalTone} transfer={config.templateId!=='chain'}/>{config.templateId==='cord'&&<><Knot color={color} leather={config.connectorId==='leather'}/>{specs.map(spec=><group key={spec.id}><Tube points={cordLeadPoints(spec.anchor)} radius={.017} color={color}/><mesh position={spec.anchor}><sphereGeometry args={[.017,12,8]}/><meshStandardMaterial color={color} roughness={.85}/></mesh></group>)}</>}{specs.map(spec=><HangingStrand key={`${config.templateId}-${config.connectorId}-${spec.id}`} spec={spec} config={config} catalog={catalog} color={color} bodies={bodies} selectedSlot={selectedSlot} onSelectSlot={onSelectSlot} motion={motion}/>)}</group>;
 }
+// The conversation sandbox may forbid WebAssembly. Keep its interactive WebGL
+// preview independent of Rapier; the studio still uses its original simulation.
+function StaticAssembly({config,catalog,selectedSlot,onSelectSlot,bag}:{config:DesignConfig;catalog:Catalog;selectedSlot?:string;onSelectSlot?:(id:string)=>void;bag:boolean}){
+  const color=catalog.cordColors.find(c=>c.id===config.cordColor)?.hex??'#99a98d';
+  const specs=getStrands(config);
+  return <group><Connector leather={config.connectorId==='leather'} tone={config.metalTone} transfer={config.templateId!=='chain'}/>
+    {config.templateId==='cord'&&<><Knot color={color} leather={config.connectorId==='leather'}/>{specs.map(spec=><Tube key={spec.id} points={cordLeadPoints(spec.anchor)} radius={.017} color={color}/>)}</>}
+    {specs.map(spec=>{
+      const part=catalog.parts.find(p=>p.id===config.slots[spec.charmSlot]);
+      const bead=catalog.parts.find(p=>spec.beadSlot&&p.id===config.slots[spec.beadSlot]);
+      return <group key={spec.id} position={spec.anchor} rotation={[bag?-.25:0,0,spec.id==='accent'?-.3:0]}>
+        {spec.chain?<Chain length={spec.length} tone={config.metalTone} rotation={spec.linkRotation} supportTilt={spec.supportTilt}/>:<group position={[0,.018,0]}><Cord length={spec.length+.018} color={color}/></group>}
+        <Ring radius={.044} thickness={.01} tone={config.metalTone} position={[0,-spec.length,0]}/>
+        {spec.beadSlot&&<SlotPart part={bead} tone={config.metalTone} slot={spec.beadSlot} selected={selectedSlot} onSelect={onSelectSlot} scale={.45} position={[0,-spec.length*.66,0]}/>}
+        <SlotPart part={part} tone={config.metalTone} slot={spec.charmSlot} selected={selectedSlot} onSelect={onSelectSlot} scale={spec.scale} position={[0,pendantOffset(part,spec),0]}/>
+      </group>;
+    })}
+  </group>;
+}
 function CameraRig({bag,zoom=1,panMode=false,autoRotate,resetKey}:{bag:boolean;zoom?:number;panMode?:boolean;autoRotate?:boolean;resetKey?:number}){
   const ref=useRef<ComponentRef<typeof OrbitControls>>(null);
   const{camera,size}=useThree();
@@ -122,6 +141,18 @@ function Capture({signature,onCapture,onReady}:{signature:string;onCapture?:Char
   useFrame(()=>{tick.current++;if(tick.current<5)invalidate();if(!ready.current&&tick.current>3){ready.current=true;onReady?.();}if(callback.current&&due.current&&performance.now()>due.current){due.current=0;try{const hidden:THREE.Object3D[]=[];scene.traverse(o=>{if(o.name==='capture-exclude'&&o.visible){o.visible=false;hidden.push(o);}});gl.render(scene,camera);const image=document.createElement('canvas');const ratio=Math.min(1,600/gl.domElement.width);image.width=gl.domElement.width*ratio;image.height=gl.domElement.height*ratio;image.getContext('2d')?.drawImage(gl.domElement,0,0,image.width,image.height);hidden.forEach(o=>o.visible=true);callback.current(image.toDataURL('image/jpeg',.8));}catch{/* Capturing never affects the interactive viewport. */}}});
   return null;
 }
+function RendererEvents({onError}:Pick<CharmSceneProps,'onError'>){
+  const {gl}=useThree();
+  useEffect(()=>{
+    const lost=()=>onError?.('3D 画布暂时不可用，请重新加载预览。');
+    const canvas=gl.domElement;
+    canvas.addEventListener('webglcontextlost',lost);
+    // R3F releases the old context on unmount. That normal cleanup must not
+    // report a failure against the replacement preview.
+    return()=>canvas.removeEventListener('webglcontextlost',lost);
+  },[gl,onError]);
+  return null;
+}
 function SceneContents(props:CharmSceneProps){
   const { tr } = useLanguage();
   const { gl } = useThree();
@@ -133,16 +164,19 @@ function SceneContents(props:CharmSceneProps){
   const floorY=bag?BAG_FLOOR_Y:-1.95;
   return <><color attach="background" args={['#eeece8']}/><ambientLight intensity={.24}/><directionalLight position={[-3,6,5]} intensity={1.6} castShadow shadow-mapSize={[2048,2048]} shadow-normalBias={.035} shadow-bias={-.0002} shadow-camera-left={-5} shadow-camera-right={5} shadow-camera-top={5} shadow-camera-bottom={-5}/><directionalLight position={[5,2,-4]} intensity={.65} color="#dbe8ff"/><Environment files="/assets/environment/studio-small-09-1k.hdr" environmentIntensity={.8} background={false}><Lightformer form="rect" intensity={1.6} color="white" scale={[8,8]} position={[0,0,5]}/><Lightformer form="rect" intensity={1.4} color="#fff3dc" scale={[2,5]} position={[-4,1,1]} rotation={[0,Math.PI/2,0]}/></Environment>
   <CameraRig bag={bag} zoom={props.zoom} panMode={props.panMode} autoRotate={props.autoRotate} resetKey={props.resetKey}/>
-  <Physics gravity={[0,-9.81,0]} timeStep={1/60} numSolverIterations={12} maxCcdSubsteps={4}>
+  {props.physics===false?<>
+    {bag&&<group position={BAG_OFFSET}><BagModel style={bagStyle} color={props.bagColor}/>{config.connectorId==='ring'&&<Ring position={mount.linkCenter} rotation={[0,Math.PI/2,0]} radius={MOUNT_LINK.radius} thickness={MOUNT_LINK.wire} tone={config.metalTone}/>}</group>}
+    <group position={position} scale={scale}><StaticAssembly config={config} catalog={catalog} selectedSlot={props.selectedSlot} onSelectSlot={props.panMode?undefined:props.onSelectSlot} bag={bag}/></group>
+  </>:<Physics gravity={[0,-9.81,0]} timeStep={1/60} numSolverIterations={12} maxCcdSubsteps={4}>
     {bag&&<><group position={BAG_OFFSET}><BagModel style={bagStyle} color={props.bagColor}/>{config.connectorId==='ring'&&<Ring position={mount.linkCenter} rotation={[0,Math.PI/2,0]} radius={MOUNT_LINK.radius} thickness={MOUNT_LINK.wire} tone={config.metalTone}/>}</group><RigidBody type="fixed" colliders={false} position={BAG_OFFSET}><BagCollision style={bagStyle}/></RigidBody></>}
     <group position={position} scale={scale}><Assembly key={`${bag}-${bagStyle}-${assemblyPhysicsKey(config)}`} config={config} catalog={catalog} selectedSlot={props.selectedSlot} onSelectSlot={props.panMode?undefined:props.onSelectSlot} motion={motion}/></group>
     <RigidBody type="fixed" colliders={false} position={[0,floorY-.1,0]}><CuboidCollider args={[8,.1,8]}/></RigidBody>
-  </Physics>
+  </Physics>}
   <mesh receiveShadow position={[0,floorY,0]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[200,200]}/><shadowMaterial transparent opacity={.18}/></mesh>
   <Capture signature={JSON.stringify([config,bag,bagStyle,props.bagColor])} onCapture={props.onCapture} onReady={props.onReady}/>
   </>;
 }
 export default function CharmScene(props:CharmSceneProps){
  const { tr } = useLanguage();
-  return <Canvas className="scene-viewer" frameloop={props.motion!==false||props.autoRotate?'always':'demand'} shadows={{type:THREE.PCFShadowMap}} dpr={[1,1.65]} camera={{fov:38,near:.1,far:60,position:[2.15,1.2,5.7]}} gl={{antialias:true,alpha:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1}} onCreated={({gl})=>{gl.domElement.setAttribute('aria-label',tr("三维包挂预览，可拖动旋转、右键或双指平移、滚轮缩放，点击挂件选择配件"));gl.domElement.addEventListener('webglcontextlost',()=>props.onError?.(tr("3D 画布暂时不可用，请重新加载预览。")),{once:true});}}><Suspense fallback={null}><SceneContents {...props}/></Suspense></Canvas>;
+  return <Canvas className="scene-viewer" frameloop={props.motion!==false||props.autoRotate?'always':'demand'} shadows={{type:THREE.PCFShadowMap}} dpr={[1,1.65]} camera={{fov:38,near:.1,far:60,position:[2.15,1.2,5.7]}} gl={{antialias:true,alpha:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1}} onCreated={({gl})=>{gl.domElement.setAttribute('aria-label',tr("三维包挂预览，可拖动旋转、右键或双指平移、滚轮缩放，点击挂件选择配件"));}}><RendererEvents onError={props.onError}/><Suspense fallback={null}><SceneContents {...props}/></Suspense></Canvas>;
 }

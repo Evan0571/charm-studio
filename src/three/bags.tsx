@@ -10,6 +10,16 @@ import { cloneBagMaterial, miniBagPalette } from './bagMaterials';
 export { bagAnchor, bagAttachmentPose } from './bagAttachment';
 export type { BagStyle, BagAttachmentPose } from './bagAttachment';
 type XYZ=[number,number,number];
+// Embedded GLB images can use the Image API even when the host forbids
+// fetch(), including fetch(blob:). The normal studio keeps its default loader.
+const embeddedTextures: NonNullable<Parameters<typeof useGLTF>[3]> = loader => {
+  if (typeof window==='undefined'||!window.__LOOP_INLINE_ASSETS__) return;
+  loader.register(parser=>{
+    parser.textureLoader=new THREE.TextureLoader(parser.options.manager);
+    parser.textureLoader.setCrossOrigin(parser.options.crossOrigin);
+    return {name:'LOOP_embedded_images',beforeRoot:()=>null};
+  });
+};
 function LeatherStrap({points,width=.17,depth=.028,color='#836149'}:{points:XYZ[];width?:number;depth?:number;color?:string}){
   const geometry=useMemo(()=>{
     const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));const shape=new THREE.Shape(); shape.moveTo(-width/2,-depth);shape.lineTo(width/2,-depth);shape.lineTo(width/2,depth);shape.lineTo(-width/2,depth);shape.closePath();return new THREE.ExtrudeGeometry(shape,{steps:64,bevelEnabled:false,extrudePath:curve});
@@ -67,7 +77,9 @@ function Mini({color}:{color?:string}){
   </group>;
 }
 function ImportedBag({style,color}:{style:'tote'|'shoulder';color?:string}){
-  const {scene}=useGLTF(`/assets/models/atelier-${style}.glb?v=surface-3`);
+  // These GLBs are uncompressed. Avoid initializing optional WASM decoders
+  // in hosts that prohibit WebAssembly, including the conversation preview.
+  const {scene}=useGLTF(`/assets/models/atelier-${style}.glb?v=surface-3`,false,false,embeddedTextures);
   const {model,materials}=useMemo(()=>{
     const model=scene.clone(true),materials=new Map<THREE.Material,THREE.Material>();
     const clone=(m:THREE.Material)=>{if(!materials.has(m))materials.set(m,m instanceof THREE.MeshStandardMaterial?cloneBagMaterial(m,color):m.clone());return materials.get(m)!;};
@@ -80,7 +92,7 @@ function ImportedBag({style,color}:{style:'tote'|'shoulder';color?:string}){
 export function BagModel({style,color}:{style:BagStyle;color?:string}){return <group>{style==='mini'?<Mini color={color}/>:<ImportedBag style={style} color={color}/>}</group>;}
 
 function ImportedBagCollision({style}:{style:'tote'|'shoulder'}) {
-  const {scene}=useGLTF(`/assets/models/atelier-${style}.glb?v=surface-3`);
+  const {scene}=useGLTF(`/assets/models/atelier-${style}.glb?v=surface-3`,false,false,embeddedTextures);
   const hull=useMemo(()=>{
     const points:number[]=[];
     scene.updateMatrixWorld(true);

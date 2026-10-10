@@ -47,9 +47,39 @@ try {
   await card.getByRole('heading', { name: '珍珠与星光' }).waitFor();
   assert.match(await card.locator('.price').innerText(), /\$\d+\s*USD/);
   assert.doesNotMatch(await card.locator('.details').innerText(), /CNY|¥/);
+  // 3D loads automatically, without a View 3D click.
+  await card.locator('canvas').waitFor();
+  assert.equal(await card.getByRole('button', { name: 'View 3D' }).isEnabled(), false);
+  await page.evaluate(() => window.loopHarness.chooseSlot('main'));
+  await card.getByRole('region', { name: 'Choose a part · Main charm' }).waitFor();
+  assert.equal(await card.locator('.part-options button').count(), 9);
+  assert.equal(await card.locator('.part-options').getByRole('button', { name: 'Dewdrop bead', exact: true }).count(), 0);
+  assert.equal(await card.locator('.part-options').getByRole('button', { name: /No accessory/ }).count(), 0);
+  await card.locator('.part-options').getByRole('button', { name: 'Seaside letter', exact: true }).click();
+  await page.waitForFunction(() => window.loopHarness.trace.at(-1)?.structuredContent?.config.slots.main === 'shell');
+  assert.match(await card.locator('.price').innerText(), /\$11/);
+  await card.getByRole('button', { name: 'Change Accent', exact: true }).click();
+  await card.getByRole('region', { name: 'Choose a part · Accent' }).waitFor();
+  await page.screenshot({ path: 'tmp/chatgpt-widget-picker-desktop.png', fullPage: true });
+  assert.equal(await card.locator('.part-options button').count(), 15);
+  assert.equal(await card.locator('.part-options button').first().getAttribute('aria-label'), 'Soft glow pearl');
+  assert.equal(await card.locator('.part-options').getByRole('button', { name: 'Soft glow pearl', exact: true }).locator('svg circle[r="30"]').count(), 1);
+  await card.locator('.part-options').getByRole('button', { name: 'Warm wood bead', exact: true }).click();
+  await page.waitForFunction(() => window.loopHarness.trace.at(-1)?.structuredContent?.config.slots.accent === 'wood');
+  assert.match(await card.locator('.price').innerText(), /\$10/);
+  await card.locator('.part-options').getByRole('button', { name: /No accessory/ }).click();
+  await page.waitForFunction(() => window.loopHarness.trace.at(-1)?.structuredContent?.config.slots.accent === null);
+  assert.match(await card.locator('.price').innerText(), /\$9/);
+  await card.locator('.part-options').getByRole('button', { name: 'Warm wood bead', exact: true }).click();
+  await page.waitForFunction(() => window.loopHarness.trace.at(-1)?.structuredContent?.config.slots.accent === 'wood');
+  assert.deepEqual(await records('/api/designs'), []);
+  assert.deepEqual(await records('/api/orders'), []);
   await card.getByRole('button', { name: 'Lock Main charm' }).click();
   await card.getByRole('button', { name: 'Unlock Main charm' }).waitFor();
   await page.waitForFunction(() => window.loopHarness.trace.at(-1)?.structuredContent?.config.lockedSlots.includes('main'));
+  await page.evaluate(() => window.loopHarness.chooseSlot('main'));
+  await card.getByText('Unlock this slot before replacing its part.').waitFor();
+  assert.equal(await card.locator('.part-options button:not(:disabled)').count(), 0);
   await card.getByRole('button', { name: 'Save design', exact: true }).click();
   await card.getByText('Design saved to your LOOP studio.').waitFor();
   assert.equal((await records('/api/designs')).length, 1);
@@ -60,6 +90,7 @@ try {
   await card.getByText('Design saved to your LOOP studio.').waitFor();
   const saved = await records('/api/designs');
   assert.equal(saved.length, 1); assert.equal(saved[0].config.metalTone, 'silver'); assert.deepEqual(saved[0].config.lockedSlots, ['main']);
+  assert.equal(saved[0].config.slots.main, 'shell'); assert.equal(saved[0].config.slots.accent, 'wood');
   await card.getByRole('button', { name: 'View test order' }).click();
   await card.getByRole('heading', { name: 'Review this test order' }).waitFor();
   assert.match(await card.locator('.checkout').innerText(), /\$\d+/);
@@ -71,7 +102,6 @@ try {
   await card.getByText('Test order confirmed. No payment or shipping.').waitFor();
   assert.equal((await records('/api/orders')).length, 1);
   assert.equal((await records('/api/orders'))[0].quote.currency, 'USD');
-  await card.getByRole('button', { name: 'View 3D' }).click();
   await card.locator('canvas').waitFor();
   // Wait for assets and physics to settle before checking the rendered frame.
   await page.waitForTimeout(6000);
@@ -81,13 +111,18 @@ try {
   await card.getByRole('button', { name: 'On a bag' }).click();
   await page.waitForTimeout(4000);
   assert.equal(await card.getByText('3D is unavailable. Showing the design illustration.').count(), 0);
+  await card.getByRole('button', { name: 'Change Accent', exact: true }).click();
+  await card.getByRole('region', { name: 'Choose a part · Accent' }).waitFor();
   await page.setViewportSize({ width: 390, height: 900 });
+  await page.waitForFunction(() => document.querySelector('#widget').clientWidth <= 390);
   await page.screenshot({ path: 'tmp/chatgpt-widget-mobile.png', fullPage: true });
   const frame = await (await page.locator('#widget').elementHandle()).contentFrame();
+  await frame.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth && document.body.scrollWidth <= 390);
+  assert.ok(await frame.evaluate(() => innerWidth <= 390));
   assert.equal(await frame.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.deepEqual(errors, []);
   for (const tool of ['loop_preview_design', 'loop_quote_design', 'loop_save_design', 'loop_prepare_test_order', 'loop_confirm_test_order']) assert.ok(methods.includes(tool));
-  console.log(JSON.stringify({ result: 'PASS', host: 'official MCP Apps AppBridge', storage: 'temporary SQLite', cases: ['browser OAuth consent + PKCE', 'sandbox + CSP', 'UI tool calls', 'locked part model context', 'incoming revision', 'update same draft', 'cancel vs confirmed test order', '3D + bag assets', 'mobile width'], errors, screenshots: ['tmp/chatgpt-widget-desktop.png', 'tmp/chatgpt-widget-mobile.png'] }, null, 2));
+  console.log(JSON.stringify({ result: 'PASS', host: 'official MCP Apps AppBridge', storage: 'temporary SQLite', cases: ['browser OAuth consent + PKCE', 'sandbox + CSP', 'default 3D', 'incoming main-part selector', 'illustrated compatible choices', 'main/accent replacement + empty accent', 'quote and model context updates', 'no implicit save/order', 'locked picker', 'incoming revision', 'update same draft', 'cancel vs confirmed test order', '3D + bag assets', 'mobile picker width'], errors, screenshots: ['tmp/chatgpt-widget-desktop.png', 'tmp/chatgpt-widget-picker-desktop.png', 'tmp/chatgpt-widget-mobile.png'] }, null, 2));
 } finally {
   await browser.close(); server.closeAllConnections();
   await new Promise(resolve => server.close(resolve)); app.locals.closeMcp(); storage.close();

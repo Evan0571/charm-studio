@@ -8,3 +8,4 @@ dist-mcp/
 .DS_Store
 tmp/
 *.log
+/src/chatgpt/inlineAssets.generated.ts
