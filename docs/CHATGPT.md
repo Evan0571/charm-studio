@@ -189,7 +189,7 @@ node --import tsx server/chatgpt.ts
 
 - MCP 协议：2025-11-25，官方 SDK，10 个设计工具及 1 个仅供卡片调用的素材工具；英文协议说明见 [MCP.md](MCP.md)。
 - UI 资源：`ui://loop/design-v3.html`，`text/html;profile=mcp-app`，官方 MCP Apps bridge；v1 / v2 URI 仍可读取。
-- UI 工具调用经宿主转发，iframe 不持有 OAuth Token；3D 资产通过仅供卡片调用的 `loop_get_preview_asset` 读取，固定文件白名单与单条消息大小限制。选择器缩略图内嵌，素材不依赖外部 fetch。首次挂件预览只读取灯光与皮革的 4 个素材，点选挂包效果后才读取当前包模型。宿主仍在传输素材时保留加载状态，素材到齐后自动显示 3D；25 秒渲染超时从素材准备完成后开始。
+- UI 工具调用经宿主转发，iframe 不持有 OAuth Token；3D 资产通过仅供卡片调用的 `loop_get_preview_asset` 读取，固定文件白名单与单条消息大小限制。选择器缩略图内嵌，素材不依赖外部 fetch。首次挂件预览只读取灯光与皮革的 7 个素材，点选挂包效果后才读取当前包模型。宿主仍在传输素材时保留加载状态，素材到齐后自动显示 3D；25 秒渲染超时从素材准备完成后开始。
 - OAuth：DCR、显式访客授权、S256 PKCE、一次性 code、1 小时 access token、轮换 refresh token、30 天 grant、撤销。
 - 真实 Chrome 回归覆盖表单 Origin 和跨站 303 回调；授权页 CSP 只额外允许已登记客户端的 callback origin。
 - 2026-10-08 作者账号实测：OAuth 安装、目录、此前人民币版本的 ¥96 樱桃 / 木珠 / 珍珠卡片、3D / 挂包、锁定中央樱桃后对话改银色。该账号测试未保存或下单；当前美元版本还需在目标账号重新验收。

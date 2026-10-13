@@ -17,5 +17,8 @@ export const CHARM_PREVIEW_ASSETS: PreviewAssetPath[] = [
   '/assets/materials/brown-leather-color.jpg',
   '/assets/materials/brown-leather-normal.jpg',
   '/assets/materials/brown-leather-roughness.jpg',
+  '/assets/materials/pebbled-leather-color.webp',
+  '/assets/materials/pebbled-leather-normal.webp',
+  '/assets/materials/pebbled-leather-roughness.webp',
 ];
 export const TOTE_PREVIEW_ASSETS: PreviewAssetPath[] = [...CHARM_PREVIEW_ASSETS, '/assets/models/atelier-tote.glb'];

@@ -55,7 +55,7 @@ try {
   await page.waitForTimeout(26000);
   assert.equal(await card.getByRole('button',{name:'Retry 3D preview',exact:true}).count(),0,'A slow host asset response must not be mistaken for a failed 3D renderer');
   assert.equal(await card.locator('.preview').getAttribute('data-render-state'),'loading');
-  assert.ok(assetPaths.every(path=>!path.includes('/models/')&&!path.includes('pebbled')),'The first preview must not wait for unused bag models or textures');
+  assert.ok(assetPaths.every(path=>!path.includes('/models/')),'The first preview must not wait for unused bag models');
   releaseAsset();
   await frame.waitForFunction(()=>document.querySelector('.preview')?.dataset.renderState==='ready',null,{timeout:30000});
   const box=await card.locator('canvas').boundingBox();
