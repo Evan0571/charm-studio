@@ -22,6 +22,12 @@ const checkout = () => ({
   merchantMetadata: { merchantReferenceId: order().id }, webCheckoutDetails: { checkoutMode: 'ProcessOrder', checkoutResultReturnUrl: 'https://loop.example/?amazonPayReturn=1' },
   chargeId, chargePermissionId: 'S01-5105180-3221187', buyer: { name: 'Buyer should not leave the provider', email: 'buyer@example.com' },
 });
+const completedReceipt = () => ({
+  checkoutSessionId, statusDetails: { state: 'Completed', reasonCode: null, reasonDescription: null },
+  chargePermissionType: 'OneTime', chargeId, chargePermissionId: 'S01-5105180-3221187',
+  releaseEnvironment: null, storeId: null, productType: null, paymentDetails: null,
+  merchantMetadata: null, webCheckoutDetails: null,
+});
 const charge = () => ({ chargeId, chargePermissionId: 'S01-5105180-3221187', releaseEnvironment: 'Sandbox', statusDetails: { state: 'Captured', reasonCode: null }, chargeAmount: { amount: '14.00', currencyCode: 'USD' }, captureAmount: { amount: '14.00', currencyCode: 'USD' } });
 const response = (data: unknown) => Promise.resolve({ status: 200, data });
 function fakeClient(overrides: Partial<AmazonPaySdkClient> = {}): AmazonPaySdkClient {
@@ -100,13 +106,38 @@ test('provider sends exact USD amount and stable idempotency key, then reads ver
 
 test('provider rejects mismatched resources, live responses and malformed monetary fields', async () => {
   for (const value of [{ ...checkout(), releaseEnvironment: 'Live' }, { ...checkout(), releaseEnvironment: undefined }, { ...checkout(), checkoutSessionId: 'different-session' },
+    { ...checkout(), releaseEnvironment: null, statusDetails: { state: 'Open' } }, { ...checkout(), releaseEnvironment: null, statusDetails: { state: 'Canceled' } },
     { ...checkout(), statusDetails: { state: 'Paid' } }, { ...checkout(), paymentDetails: { chargeAmount: { amount: 14, currencyCode: 'USD' } } }, { ...checkout(), merchantMetadata: 'invalid' }]) {
     const provider = createAmazonPayProvider({ env: environment(), clientFactory: () => fakeClient({ getCheckoutSession: () => response(value) }) });
     await assert.rejects(provider.getCheckoutSession(checkoutSessionId), invalid(502));
   }
-  for (const value of [{ ...charge(), releaseEnvironment: 'Live' }, { ...charge(), chargeId: 'different-charge' }, { ...charge(), captureAmount: { amount: 'NaN', currencyCode: 'USD' } }]) {
+  for (const value of [{ ...charge(), releaseEnvironment: 'Live' }, { ...charge(), releaseEnvironment: null }, { ...charge(), chargeId: 'different-charge' }, { ...charge(), captureAmount: { amount: 'NaN', currencyCode: 'USD' } }]) {
     const provider = createAmazonPayProvider({ env: environment(), clientFactory: () => fakeClient({ getCharge: () => response(value) }) });
     await assert.rejects(provider.getCharge(chargeId), invalid(502));
+  }
+});
+
+test('official Complete receipt with null metadata and environment permits a canonical Completed session read', async () => {
+  const provider = createAmazonPayProvider({ env: environment(), clientFactory: () => fakeClient({
+    completeCheckoutSession: () => response(JSON.stringify(completedReceipt())),
+    getCheckoutSession: () => response(completedReceipt()),
+  }) });
+  const receipt = await provider.completeCheckoutSession(checkoutSessionId, '14.00', 'same-order-key');
+  assert.deepEqual(receipt, { checkoutSessionId, statusDetails: { state: 'Completed', reasonCode: null, reasonDescription: null },
+    chargeId, chargePermissionId: 'S01-5105180-3221187' });
+  assert.equal(Object.hasOwn(receipt, 'merchantMetadata'), false);
+  const canonical = await provider.getCheckoutSession(checkoutSessionId);
+  assert.equal(canonical.releaseEnvironment, null); assert.equal(canonical.paymentDetails, null);
+  assert.equal(canonical.merchantMetadata, null); assert.equal(canonical.webCheckoutDetails, null);
+  assert.equal((await provider.getCharge(chargeId)).releaseEnvironment, 'Sandbox');
+});
+
+test('Complete receipts reject foreign sessions, explicit live mode and invalid completion states', async () => {
+  for (const value of [{ ...completedReceipt(), checkoutSessionId: 'different-session' }, { ...completedReceipt(), releaseEnvironment: 'Live' },
+    { ...completedReceipt(), statusDetails: { state: 'Open' } }, { ...completedReceipt(), statusDetails: { state: 'Canceled' } },
+    { ...completedReceipt(), chargeId: 123 }]) {
+    const provider = createAmazonPayProvider({ env: environment(), clientFactory: () => fakeClient({ completeCheckoutSession: () => response(value) }) });
+    await assert.rejects(provider.completeCheckoutSession(checkoutSessionId, '14.00', 'same-order-key'), invalid(502));
   }
 });
 

@@ -22,6 +22,11 @@ function deferred() {
   return { promise, resolve };
 }
 
+function redactCompletion(session: AmazonPayCheckoutSession) {
+  Object.assign(session, { releaseEnvironment: null, productType: null, storeId: null,
+    paymentDetails: null, merchantMetadata: null, webCheckoutDetails: null });
+}
+
 class FakeAmazonPay implements AmazonPayProvider {
   enabled = true;
   buttonOrders: Order[] = [];
@@ -31,6 +36,7 @@ class FakeAmazonPay implements AmazonPayProvider {
   sessions = new Map<string, AmazonPayCheckoutSession>();
   charges = new Map<string, AmazonPayCharge>();
   readFailuresAfterCapture = 0;
+  redactAfterCapture = false;
   captureGate?: ReturnType<typeof deferred>;
   captureEntered = deferred();
   configured() { return this.enabled; }
@@ -82,6 +88,7 @@ class FakeAmazonPay implements AmazonPayProvider {
     if (this.captureGate) await this.captureGate.promise;
     const session = this.sessions.get(id)!;
     session.statusDetails.state = 'Completed'; session.chargeId = `charge-${id}`;
+    if (this.redactAfterCapture) redactCompletion(session);
     return structuredClone(session);
   }
   async getCharge(id: string) {
@@ -231,7 +238,7 @@ test('a captured payment recovers after a session-read failure without capturing
   try {
     const alice = f.client();
     const order: Order = (await alice(`${paymentPath}/prepare`, 'POST', body())).data.order;
-    f.provider.addSession(order); f.provider.readFailuresAfterCapture = 1;
+    f.provider.addSession(order); f.provider.readFailuresAfterCapture = 1; f.provider.redactAfterCapture = true;
     const request = { orderId: order.id, checkoutSessionId: 'S01-checkout' };
     assert.equal((await alice(`${paymentPath}/complete`, 'POST', request)).status, 502);
     const pending = (await alice(`/api/orders/${order.id}`)).data;
@@ -248,7 +255,7 @@ test('a captured payment recovers after persistence fails without capturing agai
   try {
     const alice = f.client();
     const order: Order = (await alice(`${paymentPath}/prepare`, 'POST', body())).data.order;
-    f.provider.addSession(order);
+    f.provider.addSession(order); f.provider.redactAfterCapture = true;
     const original = f.storage.updateAmazonPayOrder.bind(f.storage);
     let failures = 1;
     t.mock.method(f.storage, 'updateAmazonPayOrder', async (...args: Parameters<typeof original>) => {
@@ -263,6 +270,73 @@ test('a captured payment recovers after persistence fails without capturing agai
     assert.equal(recovered.status, 200); assert.equal(recovered.data.status, 'sandbox_paid');
     assert.equal(f.provider.captures.length, 1);
   } finally { await f.close(); }
+});
+
+test('a newly captured redacted Completed session is reconciled through its matching Sandbox charge', async () => {
+  const f = await fixture();
+  try {
+    const alice = f.client();
+    const order: Order = (await alice(`${paymentPath}/prepare`, 'POST', body())).data.order;
+    f.provider.addSession(order); f.provider.redactAfterCapture = true;
+    const request = { orderId: order.id, checkoutSessionId: 'S01-checkout' };
+    const result = await alice(`${paymentPath}/complete`, 'POST', request);
+    assert.equal(result.status, 200); assert.equal(result.data.status, 'sandbox_paid');
+    assert.equal(f.provider.sessions.get(request.checkoutSessionId)!.releaseEnvironment, null);
+    assert.equal(f.provider.captures.length, 1); assert.deepEqual(f.provider.chargeReads, ['charge-S01-checkout']);
+    assert.deepEqual((await alice(`${paymentPath}/complete`, 'POST', request)).data, result.data);
+    assert.equal(f.provider.captures.length, 1); assert.equal(f.provider.chargeReads.length, 1);
+  } finally { await f.close(); }
+});
+
+test('an unbound redacted Completed session cannot claim an order or read its charge', async t => {
+  for (const releaseEnvironment of [null, 'Sandbox'] as const) await t.test(String(releaseEnvironment), async () => {
+    const f = await fixture();
+    try {
+      const alice = f.client();
+      const order: Order = (await alice(`${paymentPath}/prepare`, 'POST', body())).data.order;
+      const session = f.provider.addSession(order, 'S01-checkout', 'Completed');
+      redactCompletion(session); session.releaseEnvironment = releaseEnvironment;
+      const result = await alice(`${paymentPath}/complete`, 'POST', { orderId: order.id, checkoutSessionId: session.checkoutSessionId });
+      assert.equal(result.status, 409);
+      const pending = (await alice(`/api/orders/${order.id}`)).data;
+      assert.equal(pending.status, 'sandbox_pending'); assert.equal(pending.payment.checkoutSessionId, undefined);
+      assert.equal(f.provider.captures.length, 0); assert.equal(f.provider.chargeReads.length, 0);
+    } finally { await f.close(); }
+  });
+});
+
+test('a bound redacted Completed retry still rejects conflicting session or charge evidence', async t => {
+  const changes: [string, (session: AmazonPayCheckoutSession, charge: AmazonPayCharge) => void][] = [
+    ['foreign session', session => { session.checkoutSessionId = 'S01-other'; }],
+    ['live session', session => { Object.assign(session, { releaseEnvironment: 'Live' }); }],
+    ['retained foreign order reference', session => { session.merchantMetadata = { merchantReferenceId: 'other-order' }; }],
+    ['retained wrong amount', session => { session.paymentDetails = { paymentIntent: 'AuthorizeWithCapture', chargeAmount: { amount: '0.01', currencyCode: 'USD' } }; }],
+    ['recurring permission', session => { session.chargePermissionType = 'Recurring'; }],
+    ['missing session permission', session => { session.chargePermissionId = null; }],
+    ['missing charge permission', (_session, charge) => { charge.chargePermissionId = null; }],
+    ['foreign charge permission', (_session, charge) => { charge.chargePermissionId = 'permission-other'; }],
+    ['live charge', (_session, charge) => { Object.assign(charge, { releaseEnvironment: 'Live' }); }],
+    ['null charge environment', (_session, charge) => { Object.assign(charge, { releaseEnvironment: null }); }],
+    ['foreign charge', (_session, charge) => { charge.chargeId = 'charge-other'; }],
+    ['wrong charge amount', (_session, charge) => { charge.chargeAmount.amount = '0.01'; }],
+    ['missing capture amount', (_session, charge) => { charge.captureAmount = null; }],
+    ['wrong capture amount', (_session, charge) => { charge.captureAmount!.amount = '0.01'; }],
+    ['wrong capture currency', (_session, charge) => { charge.captureAmount!.currencyCode = 'CNY'; }],
+  ];
+  for (const [name, change] of changes) await t.test(name, async () => {
+    const f = await fixture();
+    try {
+      const alice = f.client();
+      const order: Order = (await alice(`${paymentPath}/prepare`, 'POST', body())).data.order;
+      const session = f.provider.addSession(order); f.provider.redactAfterCapture = true; f.provider.readFailuresAfterCapture = 1;
+      const request = { orderId: order.id, checkoutSessionId: session.checkoutSessionId };
+      assert.equal((await alice(`${paymentPath}/complete`, 'POST', request)).status, 502);
+      change(session, f.provider.charges.get(session.chargeId!)!);
+      assert.equal((await alice(`${paymentPath}/complete`, 'POST', request)).status, 409);
+      assert.equal((await alice(`/api/orders/${order.id}`)).data.status, 'sandbox_pending');
+      assert.equal(f.provider.captures.length, 1);
+    } finally { await f.close(); }
+  });
 });
 
 test('declined, canceled, and in-progress capture states are reported without false payment success', async t => {

@@ -5,7 +5,7 @@ import type { Language } from '../shared/localization';
 
 type CheckoutRequest = { designName: string; config: DesignConfig; idempotencyKey: string };
 type PreparedCheckout = { order: Order; button: AmazonPayButtonConfig };
-type AmazonPaySDK = { renderButton: (selector: string, config: AmazonPayButtonConfig & { onError: () => void }) => unknown };
+type AmazonPaySDK = { renderButton: (selector: string, config: AmazonPayButtonConfig & { onError: () => void }) => unknown; signout: () => void };
 declare global { interface Window { amazon?: { Pay?: AmazonPaySDK }; } }
 
 const sdkURL = 'https://static-na.payments-amazon.com/checkout.js';
@@ -78,6 +78,7 @@ export default function AmazonPayButton({ request, disabled, language, onStart, 
   const text = (en: string, zh: string) => language === 'en' ? en : zh;
   const [phase, setPhase] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [button, setButton] = useState<AmazonPayButtonConfig | null>(null);
+  const [buyerSwitch, setBuyerSwitch] = useState<'prompt' | 'error' | null>(null);
   const root = useRef<HTMLDivElement>(null), active = useRef(false), mounted = useRef(true);
   const buttonId = `loop-amazon-pay-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
@@ -93,7 +94,7 @@ export default function AmazonPayButton({ request, disabled, language, onStart, 
   }, [button, buttonId]);
   const prepare = async () => {
     if (disabled || active.current) return;
-    active.current = true; setPhase('loading'); onBusy(true); onStart();
+    active.current = true; setPhase('loading'); setBuyerSwitch(null); onBusy(true); onStart();
     try {
       const [checkout] = await Promise.all([prepareCheckout(request), loadSDK()]);
       if (!mounted.current) return;
@@ -101,13 +102,20 @@ export default function AmazonPayButton({ request, disabled, language, onStart, 
     } catch { if (mounted.current) setPhase('error'); }
     finally { active.current = false; onBusy(false); }
   };
+  const switchSandboxBuyer = () => {
+    if (disabled || phase !== 'ready') return;
+    try {
+      if (!window.amazon?.Pay?.signout) throw new Error('Amazon sign-out is unavailable.');
+      window.amazon.Pay.signout(); setBuyerSwitch('prompt');
+    } catch { setBuyerSwitch('error'); }
+  };
   return <div className="amazon-pay-option">
     <div className="payment-option-heading"><strong>Amazon Pay</strong><span>{text('SANDBOX', '沙盒测试')}</span></div>
     <p>{text('Try Amazon checkout with a sandbox buyer account. No real charge or shipping.', '用沙盒买家账号体验 Amazon 结账，不会真实扣款或发货。')}</p>
     {phase === 'idle' && <button className="secondary full-width" disabled={disabled} onClick={() => void prepare()}>{text('Continue with Amazon Pay sandbox', '使用 Amazon Pay 沙盒结账')}</button>}
     {phase === 'loading' && <div className="amazon-pay-loading" role="status"><span className="spinner" />{text('Preparing Amazon Pay…', '正在准备 Amazon Pay…')}</div>}
     <div id={buttonId} ref={root} className="amazon-pay-button" hidden={phase !== 'ready'} inert={disabled} aria-label={text('Amazon Pay sandbox checkout', 'Amazon Pay 沙盒结账')} />
-    {phase === 'ready' && <p className="amazon-pay-instruction">{text('Select the Amazon Pay button to open the sandbox checkout.', '点击 Amazon Pay 按钮，打开沙盒收银台。')}</p>}
+    {phase === 'ready' && <><p className={`amazon-pay-instruction${buyerSwitch === 'error' ? ' amazon-pay-error' : ''}`} role={buyerSwitch ? buyerSwitch === 'error' ? 'alert' : 'status' : undefined}>{buyerSwitch === 'error' ? text('We could not switch the buyer. Try again.', '暂时无法切换买家，请重试。') : buyerSwitch === 'prompt' ? text('Select the Amazon Pay button again and sign in with your sandbox test buyer.', '请再次点击 Amazon Pay 按钮，并登录沙盒测试买家账号。') : text('Select the Amazon Pay button to open the sandbox checkout.', '点击 Amazon Pay 按钮，打开沙盒收银台。')}</p><button className="text-action" disabled={disabled} onClick={switchSandboxBuyer}>{text('Switch sandbox buyer', '切换沙盒买家')}</button></>}
     {phase === 'error' && <><p role="alert" className="amazon-pay-error">{text('Amazon Pay could not open. Your design is kept; try again.', 'Amazon Pay 暂时无法打开。搭配已保留，可以重试。')}</p><button className="secondary full-width" disabled={disabled} onClick={() => void prepare()}>{text('Try Amazon Pay again', '重试 Amazon Pay')}</button></>}
   </div>;
 }
