@@ -19,17 +19,22 @@ const server=app.listen(0,'127.0.0.1'); await once(server,'listening');
 const base='http://127.0.0.1:'+server.address().port;
 const browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader']});
 const page=await browser.newPage({viewport:{width:1100,height:1000}});
-const errors=[], calls=[];
+const errors=[], calls=[], assetPaths=[];
 let fault;
 let rejectAsset=true;
+let delayedAsset;
+let releaseAsset;
+const assetGate=new Promise(resolve=>{releaseAsset=resolve;});
 page.on('pageerror',error=>errors.push(error.message));
-page.on('request',req=>{if(req.url()===base+'/mcp'&&req.method()==='POST'){const rpc=req.postDataJSON();if(rpc.method==='tools/call')calls.push(rpc.params.name);}});
+page.on('request',req=>{if(req.url()===base+'/mcp'&&req.method()==='POST'){const rpc=req.postDataJSON();if(rpc.method==='tools/call'){calls.push(rpc.params.name);if(rpc.params.name==='loop_get_preview_asset')assetPaths.push(rpc.params.arguments.path);}}});
 await page.route('**/mcp',async route=>{
   const rpc=route.request().method()==='POST'?route.request().postDataJSON():undefined;
   if(rpc?.method==='tools/call'&&rpc.params.name==='loop_get_preview_asset'&&rejectAsset){
     rejectAsset=false;
+    delayedAsset=rpc.params.arguments.path;
     return route.fulfill({contentType:'application/json',body:JSON.stringify({jsonrpc:'2.0',id:rpc.id,result:{isError:true,content:[{type:'text',text:'Temporary asset failure'}],structuredContent:{error:'3D 素材暂时不可用，请重试预览。',status:503}}})});
   }
+  if(rpc?.method==='tools/call'&&rpc.params.name==='loop_get_preview_asset'&&rpc.params.arguments.path===delayedAsset)await assetGate;
   if(rpc?.method==='tools/call'&&rpc.params.name==='loop_quote_design'&&fault){
     const current=fault;fault=undefined;
     if(current==='error')return route.fulfill({contentType:'application/json',body:JSON.stringify({jsonrpc:'2.0',id:rpc.id,result:{isError:true,content:[{type:'text',text:'Temporary service failure'}],structuredContent:{error:'连接暂时不可用，请重试。',status:503}}})});
@@ -47,6 +52,11 @@ try {
   await card.getByRole('button',{name:'Retry 3D preview',exact:true}).waitFor();
   assert.match(await card.locator('.price').innerText(),/\$13/);
   await card.getByRole('button',{name:'Retry 3D preview',exact:true}).click();
+  await page.waitForTimeout(26000);
+  assert.equal(await card.getByRole('button',{name:'Retry 3D preview',exact:true}).count(),0,'A slow host asset response must not be mistaken for a failed 3D renderer');
+  assert.equal(await card.locator('.preview').getAttribute('data-render-state'),'loading');
+  assert.ok(assetPaths.every(path=>!path.includes('/models/')&&!path.includes('pebbled')),'The first preview must not wait for unused bag models or textures');
+  releaseAsset();
   await frame.waitForFunction(()=>document.querySelector('.preview')?.dataset.renderState==='ready',null,{timeout:30000});
   const box=await card.locator('canvas').boundingBox();
   await page.mouse.click(box.x+box.width*.55,box.y+box.height*.57);
@@ -142,10 +152,12 @@ try {
   assert.equal((await records('/api/orders')).length,1);
   await frame.waitForFunction(()=>document.querySelector('.preview')?.dataset.renderState==='ready',null,{timeout:30000});
   await card.getByRole('button',{name:'On a bag',exact:true}).click();
-  await page.waitForTimeout(2500);
+  await frame.waitForFunction(()=>document.querySelector('.preview')?.dataset.renderState==='ready',null,{timeout:30000});
+  assert.ok(assetPaths.includes('/assets/models/atelier-tote.glb'),'The bag model loads when the user requests the bag preview');
+  assert.ok(!assetPaths.includes('/assets/models/atelier-shoulder.glb'),'The unselected shoulder bag must not delay this preview');
   await page.locator('#widget').screenshot({path:'tmp/mcp-experience-bag.png'});
   await card.getByRole('button',{name:'Change Accent',exact:true}).click();
   await page.locator('#widget').screenshot({path:'tmp/mcp-experience-picker.png'});
   assert.deepEqual(errors,[]);
-  console.log(JSON.stringify({result:'PASS',cases:['asset failure retry with editable fallback','click 3D to select a part','product thumbnails and search','failed quote preserves design','slow quote feedback and duplicate-click guard','unlock directly in picker','language shared with conversation','rename and saved state','undo restores saved version','expired quote refresh without ordering','receipt preserves draft/config/locks','conversation revision after checkout updates same saved draft','late quote cannot overwrite newer preview','bag rendering'],savedDesigns:1,testOrders:1,errors,calls},null,2));
+  console.log(JSON.stringify({result:'PASS',cases:['asset failure retry with editable fallback','slow hosted assets recover automatically','bag assets load only on demand','click 3D to select a part','product thumbnails and search','failed quote preserves design','slow quote feedback and duplicate-click guard','unlock directly in picker','language shared with conversation','rename and saved state','undo restores saved version','expired quote refresh without ordering','receipt preserves draft/config/locks','conversation revision after checkout updates same saved draft','late quote cannot overwrite newer preview','bag rendering'],savedDesigns:1,testOrders:1,errors,calls},null,2));
 } finally {await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));app.locals.closeMcp();storage.close();}

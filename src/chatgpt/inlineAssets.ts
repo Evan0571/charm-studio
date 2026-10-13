@@ -6,7 +6,7 @@ const key = (path: string) => 'loop-inline:' + path;
 const pending = new Map<string, Promise<void>>();
 type Asset = {mime:string;base64:string};
 
-export async function prepareInlineAssets(readAsset: (path: PreviewAssetPath) => Promise<Asset>) {
+export async function prepareInlineAssets(readAsset: (path: PreviewAssetPath) => Promise<Asset>, paths = Object.keys(PREVIEW_ASSETS) as PreviewAssetPath[]) {
   Cache.enabled = true;
   window.__LOOP_INLINE_ASSETS__ = true;
   DefaultLoadingManager.setURLModifier(url => {
@@ -15,7 +15,7 @@ export async function prepareInlineAssets(readAsset: (path: PreviewAssetPath) =>
     if (!(path in PREVIEW_ASSETS)) throw new Error('Missing bundled 3D asset: ' + path);
     return key(path);
   });
-  await Promise.all((Object.keys(PREVIEW_ASSETS) as PreviewAssetPath[]).map(path => {
+  await Promise.all(paths.map(path => {
     const mime=PREVIEW_ASSETS[path], cacheKey=(mime.startsWith('image/')?'image:':'file:')+key(path);
     if (Cache.get(cacheKey)) return Promise.resolve();
     if (pending.has(path)) return pending.get(path);

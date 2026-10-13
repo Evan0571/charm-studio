@@ -11,3 +11,11 @@ export const PREVIEW_ASSETS = {
   '/assets/models/atelier-shoulder.glb': 'model/gltf-binary',
 } as const;
 export type PreviewAssetPath = keyof typeof PREVIEW_ASSETS;
+
+export const CHARM_PREVIEW_ASSETS: PreviewAssetPath[] = [
+  '/assets/environment/studio-small-09-1k.hdr',
+  '/assets/materials/brown-leather-color.jpg',
+  '/assets/materials/brown-leather-normal.jpg',
+  '/assets/materials/brown-leather-roughness.jpg',
+];
+export const TOTE_PREVIEW_ASSETS: PreviewAssetPath[] = [...CHARM_PREVIEW_ASSETS, '/assets/models/atelier-tote.glb'];

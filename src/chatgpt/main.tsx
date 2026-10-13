@@ -6,6 +6,7 @@ import { prepareInlineAssets } from './inlineAssets';
 import { CharmPreview } from '../CharmArt';
 import { PartImage } from './PartImage';
 import { validateConfig, validateName } from '../../shared/domain';
+import { CHARM_PREVIEW_ASSETS, TOTE_PREVIEW_ASSETS } from '../../shared/previewAssets';
 import { designSignature } from '../../shared/designState';
 import { localizeCatalog } from '../../shared/localization';
 import type { DesignConfig, Quote, SavedDesign, Order } from '../../shared/types';
@@ -90,14 +91,17 @@ function Widget() {
       const result=await bridge.callServerTool({name:'loop_get_preview_asset',arguments:{path}});
       if(result.isError) throw new Error('Preview asset unavailable');
       return result._meta?.asset as {mime:string;base64:string};
-    }).then(()=>{if(active)setAssetsReady(true);}).catch(()=>{if(active)setSceneFailed(true);});
+    }, bag ? TOTE_PREVIEW_ASSETS : CHARM_PREVIEW_ASSETS).then(()=>{if(active)setAssetsReady(true);}).catch(error=>{
+      console.warn('LOOP_PREVIEW_ASSETS_FAILED', error instanceof Error ? error.message : 'Asset unavailable');
+      if(active)setSceneFailed(true);
+    });
     return()=>{active=false;};
-  }, [connected, assetAttempt]);
+  }, [connected, assetAttempt, bag]);
   useEffect(() => {
-    if (!rawPreview || ready || sceneFailed) return;
+    if (!rawPreview || !assetsReady || ready || sceneFailed) return;
     const timer = setTimeout(() => setSceneFailed(true), 25_000);
     return () => clearTimeout(timer);
-  }, [!!rawPreview, ready, sceneFailed, sceneVersion]);
+  }, [!!rawPreview, assetsReady, ready, sceneFailed, sceneVersion]);
   useEffect(() => {
     if (!checkout) return;
     setNow(Date.now());
@@ -211,7 +215,7 @@ function Widget() {
       <div className="view-controls">
         {sceneFailed ? <button onClick={() => {setSceneFailed(false); setReady(false); if(!assetsReady)setAssetAttempt(attempt=>attempt+1); setSceneVersion(version => version + 1);}}>{tr('重试 3D 预览')}</button>
           : <button disabled={!ready} onClick={() => setResetKey(key => key + 1)}>{tr('复位视角')}</button>}
-        <button aria-pressed={bag} disabled={!ready && !sceneFailed} onClick={() => setBag(!bag)}>{bag ? tr('只看包挂') : tr('挂包效果')}</button>
+        <button aria-pressed={bag} disabled={!ready && !sceneFailed} onClick={() => {setReady(false); setAssetsReady(false); setSceneFailed(false); setSceneVersion(version => version + 1); setBag(!bag);}}>{bag ? tr('只看包挂') : tr('挂包效果')}</button>
       </div>
       <span className="preview-note" role={!ready && !sceneFailed ? 'status' : undefined}>{sceneFailed ? tr('3D 暂不可用，已展示设计插画') : !ready ? tr('正在加载 3D 预览…') : tr('拖动旋转 · 滚轮缩放 · 点选配件')}</span>
     </section>{partPicker}</div>
