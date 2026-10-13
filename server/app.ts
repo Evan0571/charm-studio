@@ -8,6 +8,8 @@ import { createStudioService } from './studio-service';
 import { createMcpHttp } from './mcp/http';
 import type { McpOptions } from './mcp/auth';
 import { visitor } from './visitor';
+import { amazonPayFromEnvironment, type AmazonPayProvider } from './amazon-pay';
+import { createAmazonPayService } from './amazon-pay-service';
 
 const ownerOf = (res: Response): string => res.locals.ownerId as string;
 function bodyOf(req: Request): Record<string, unknown> {
@@ -15,9 +17,10 @@ function bodyOf(req: Request): Record<string, unknown> {
   return req.body;
 }
 
-export function createApp(storage: Storage, stylist: StylistService = createStylistService(), mcpOptions: McpOptions = {}) {
+export function createApp(storage: Storage, stylist: StylistService = createStylistService(), mcpOptions: McpOptions = {}, amazonPay: AmazonPayProvider = amazonPayFromEnvironment()) {
   const app = express();
   const service = createStudioService(storage, stylist);
+  const payment = createAmazonPayService(storage, amazonPay);
   const mcp = createMcpHttp(storage, service, mcpOptions);
   app.disable('x-powered-by');
   app.locals.closeMcp = mcp.close;
@@ -71,10 +74,18 @@ export function createApp(storage: Storage, stylist: StylistService = createStyl
     res.status(204).end();
   });
   app.get('/api/orders', async (_req, res) => { res.json(await storage.listOrders(ownerOf(res))); });
+  app.get('/api/orders/:id', async (req, res) => {
+    const order = await storage.getOrder(ownerOf(res), validateDesignId(req.params.id));
+    if (!order) throw new ValidationError('没有找到这份订单。', 404);
+    res.json(order);
+  });
   app.post('/api/orders', async (req, res) => {
     const saved = await service.createOrder(ownerOf(res), bodyOf(req));
     res.status(saved.created ? 201 : 200).json(saved.order);
   });
+  app.get('/api/payments/amazon-pay/status', (_req, res) => { res.json(payment.status()); });
+  app.post('/api/payments/amazon-pay/prepare', async (req, res) => { res.json(await payment.prepare(ownerOf(res), bodyOf(req))); });
+  app.post('/api/payments/amazon-pay/complete', async (req, res) => { res.json(await payment.complete(ownerOf(res), bodyOf(req))); });
   app.use('/api', (_req, res) => { res.status(404).json({ error: '接口不存在。' }); });
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error instanceof ValidationError) { res.status(error.status).json({ error: error.message }); return; }

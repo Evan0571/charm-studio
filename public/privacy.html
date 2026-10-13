@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="How LOOP Sandbox uses browser drafts, saved designs, test orders, and optional connected services.">
+    <title>Privacy notice — LOOP Sandbox</title>
+    <style>
+      :root { color-scheme: light; --cream: #f6f3ec; --forest: #304538; --ink: #28372d; --muted: #626b60; --line: #dcded1; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--cream); color: var(--ink); font: 16px/1.75 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      a { color: var(--forest); text-underline-offset: 4px; }
+      a:focus-visible { outline: 2px solid var(--forest); outline-offset: 5px; }
+      .shell { width: min(100% - 48px, 800px); margin: 0 auto; }
+      header { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 28px 0; border-bottom: 1px solid var(--line); }
+      .brand { font: 600 27px/1 Georgia, "Times New Roman", serif; letter-spacing: 1px; text-decoration: none; }
+      .back { font-size: 13px; }
+      main { padding: 46px 0 36px; }
+      .eyebrow { margin: 0 0 13px; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+      h1, h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; }
+      h1 { max-width: 630px; margin: 0 0 20px; font-size: clamp(32px, 5vw, 46px); line-height: 1.14; letter-spacing: -.6px; }
+      h2 { margin: 0 0 10px; font-size: 23px; line-height: 1.35; }
+      p { margin: 0 0 14px; }
+      .intro { max-width: 670px; font-size: 18px; line-height: 1.65; }
+      .notice { margin: 25px 0 34px; padding: 16px 20px; border-left: 3px solid var(--forest); background: #edf0e6; font-size: 15px; }
+      .notice p { margin: 0; }
+      section { padding: 23px 0; border-top: 1px solid var(--line); }
+      section p:last-child { margin-bottom: 0; }
+      .chinese { padding: 25px; margin-top: 16px; border: 1px solid var(--line); border-radius: 4px; background: #fcfaf5; }
+      .chinese h2 { font-family: inherit; font-size: 21px; }
+      .chinese p { font-size: 15px; }
+      footer { padding: 21px 0 32px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+      @media (max-width: 480px) {
+        .shell { width: calc(100% - 36px); }
+        header { padding: 23px 0; }
+        main { padding-top: 34px; }
+        .intro { font-size: 17px; }
+        .chinese { padding: 20px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <a class="brand" href="/">LOOP</a>
+        <a class="back" href="/#/studio">Back to the studio</a>
+      </header>
+      <main>
+        <p class="eyebrow">Design studio · Sandbox demo</p>
+        <h1>Privacy notice —<br>LOOP Sandbox</h1>
+        <p class="intro">This notice describes how the LOOP demonstration uses your designs, browser data, and optional services.</p>
+        <div class="notice"><p><strong>For testing and project demonstrations.</strong> Test orders and Amazon Pay sandbox checkout involve no real charge, manufacturing, or shipping. Prices and product previews are illustrative.</p></div>
+
+        <section aria-labelledby="browser">
+          <h2 id="browser">Your browser workspace</h2>
+          <p>A guest cookie identifies this browser's workspace. LOOP uses a hash of that guest identifier to associate saved records with the workspace. This is a browser guest identity, rather than a verified customer account.</p>
+          <p>Browser local storage keeps your working design and name, language choice, generated preview images, and AI stylist conversation and draft. Session storage can keep an Amazon Pay checkout return reference while a sandbox payment is checked.</p>
+        </section>
+
+        <section aria-labelledby="records">
+          <h2 id="records">Saved designs and test orders</h2>
+          <p>When you save a design, LOOP stores its name, selected parts and configuration, record ID, and timestamps. Test orders also store the price quote, order status, and references used to prevent duplicate submissions. Amazon Pay orders can include the sandbox checkout session ID, charge ID, and payment update time.</p>
+          <p>These records are associated with the hashed guest identifier and stored in a local SQLite database or in Supabase, depending on the deployment's configuration. Connection authorization records are also stored when a connected client is enabled.</p>
+        </section>
+
+        <section aria-labelledby="payment">
+          <h2 id="payment">Amazon Pay sandbox checkout</h2>
+          <p>Amazon hosts the sandbox checkout pages where you enter test account and payment information. LOOP sends Amazon the order reference, USD amount, and checkout settings, then checks the returned transaction against the order.</p>
+          <p>LOOP's payment integration keeps selected fields needed to verify the sandbox transaction. Its order records do not store card numbers or buyer names, email addresses, or shipping addresses received from Amazon. Amazon processes information entered on its pages under its own notices.</p>
+        </section>
+
+        <section aria-labelledby="stylist">
+          <h2 id="stylist">Optional AI stylist</h2>
+          <p>If you use the AI stylist, the server sends your conversation messages, selected language, the product catalog, and your current design configuration when included to OpenAI to generate a proposal. The API request uses the setting <code>store: false</code>; OpenAI's own data handling applies to its processing. The conversation is retained in this browser so you can continue it.</p>
+        </section>
+
+        <section aria-labelledby="connections">
+          <h2 id="connections">Connected clients</h2>
+          <p>If you authorize a client such as ChatGPT to connect to LOOP, it can access the connected guest workspace's saved designs and test orders, create or revise designs, and prepare quotes. A confirmed test order can be created through that connection. Data returned to the client is handled under that client's own policies.</p>
+        </section>
+
+        <section aria-labelledby="controls">
+          <h2 id="controls">Your controls and contact</h2>
+          <p>You can remove saved designs in the app. Removing a saved design keeps an open working draft and existing test orders. You can clear this site's browser storage using your browser settings; clearing the guest cookie can also remove your access to its saved workspace without deleting the server records.</p>
+          <p>The demo currently has no order deletion control or automatic expiration of design and order records. No fixed retention period is implemented for those records.</p>
+          <p>For questions about this demo or its records, contact the project operator using the support contact displayed in the sandbox checkout.</p>
+        </section>
+
+        <section class="chinese" lang="zh-CN" aria-labelledby="chinese-summary">
+          <h2 id="chinese-summary">中文简要说明</h2>
+          <p>LOOP 是设计与沙盒支付演示，不会真实扣款、生产或发货。访客 Cookie 识别当前浏览器，服务端用其哈希关联设计名称、配置、报价、测试订单状态及沙盒交易编号；数据按部署配置保存在本地 SQLite 或 Supabase。</p>
+          <p>浏览器会保存工作草稿、语言、预览图和 AI 搭配对话，当前结账返回信息也可能暂存在会话存储中。使用 AI 搭配时，对话、产品目录及所包含的当前设计会发送至 OpenAI。Amazon 托管沙盒收银台；LOOP 的订单记录不保存 Amazon 返回的卡号或买家姓名、邮箱、地址。</p>
+          <p>授权 ChatGPT 等客户端连接后，客户端可读取该访客工作台的设计和测试订单并进行获准的操作。应用支持删除保存的设计，但会保留当前草稿和已有订单；目前没有订单删除入口或设计、订单自动过期机制。清除浏览器数据不会删除服务端记录。相关问题请联系沙盒结账页显示的项目支持联系人。</p>
+        </section>
+      </main>
+      <footer>LOOP Sandbox · Updated October 13, 2026</footer>
+    </div>
+  </body>
+</html>

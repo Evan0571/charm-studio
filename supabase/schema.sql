@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS public.charm_orders (
   design_name text NOT NULL CHECK (char_length(design_name) BETWEEN 1 AND 50),
   config jsonb NOT NULL CHECK (jsonb_typeof(config) = 'object'),
   quote jsonb NOT NULL CHECK (jsonb_typeof(quote) = 'object'),
-  status text NOT NULL DEFAULT 'test_confirmed' CHECK (status = 'test_confirmed'),
+  status text NOT NULL DEFAULT 'test_confirmed' CHECK (status IN ('test_confirmed', 'sandbox_pending', 'sandbox_paid', 'sandbox_failed', 'sandbox_canceled')),
+  payment jsonb CHECK (payment IS NULL OR jsonb_typeof(payment) = 'object'),
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (owner_id, idempotency_key)
 );
@@ -30,6 +31,7 @@ CREATE INDEX IF NOT EXISTS charm_orders_owner_created_idx ON public.charm_orders
 ALTER TABLE public.charm_orders ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.charm_orders FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT, INSERT ON public.charm_orders TO service_role;
+GRANT UPDATE (status, payment) ON public.charm_orders TO service_role;
 
 -- Supabase can create this event-trigger helper when automatic RLS is selected.
 -- Keep the trigger active but prevent clients from invoking its definer function.
