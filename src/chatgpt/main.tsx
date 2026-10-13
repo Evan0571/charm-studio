@@ -10,12 +10,12 @@ import { CHARM_PREVIEW_ASSETS, TOTE_PREVIEW_ASSETS } from '../../shared/previewA
 import { designSignature } from '../../shared/designState';
 import { localizeCatalog } from '../../shared/localization';
 import type { DesignConfig, Quote, SavedDesign, Order } from '../../shared/types';
-import { checkoutExpired, isSaved, modelContext, type Preview, type Checkout } from './state';
+import { checkoutExpired, isSaved, modelContext, reconcileSavedDesign, type Preview, type Checkout } from './state';
 import './widget.css';
 
 declare global { interface Window { __LOOP_WIDGET__: { assetOrigin: string } } }
 const Scene = lazy(() => import('../CharmScene'));
-const bridge = new App({ name: 'LOOP design preview', version: '2.0.0' }, {}, { autoResize: true });
+const bridge = new App({ name: 'LOOP design preview', version: '2.1.0' }, {}, { autoResize: true });
 type Result = { isError?: boolean; structuredContent?: Record<string, unknown>; content?: unknown };
 type Action = 'quote' | 'lock' | 'save' | 'prepare' | 'confirm';
 type Edit = { name: string; config: DesignConfig };
@@ -41,6 +41,7 @@ class SceneBoundary extends Component<{ fallback: ReactNode; children: ReactNode
 function Widget() {
   const { tr, language, money, locale } = useLanguage();
   const [rawPreview, setPreview] = useState<Preview>();
+  const [incomingRevision, setIncomingRevision] = useState(0);
   const preview = useMemo(() => rawPreview ? { ...rawPreview, catalog: localizeCatalog(rawPreview.catalog, language) } : undefined, [rawPreview, language]);
   const [connected, setConnected] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
   const [pending, setPending] = useState<Action>(), busyRef = useRef(false), revision = useRef(0);
@@ -64,6 +65,7 @@ function Widget() {
         if (!value.config || !value.catalog || !value.quote) throw new Error(tr('没有收到完整的预览。'));
         validateConfig(value.config);
         revision.current++;
+        setIncomingRevision(revision.current);
         setPreview(value); setSelectionSlot(value.selectionSlot); setSearch(''); setCheckout(undefined); setOrder(undefined);
         setHistory([]); setRenaming(false); setReceiptCollapsed(false); setError(''); setNotice('');
         setSceneFailed(false); setReady(false); setSceneVersion(version => version + 1);
@@ -77,6 +79,26 @@ function Widget() {
     }).catch(() => setError(tr('请在已连接 LOOP 的对话中打开预览。')));
     return () => { void bridge.close(); };
   }, []);
+  useEffect(() => {
+    if (!connected || !rawPreview?.designId || isSaved(rawPreview)) return;
+    let active = true;
+    const source = rawPreview;
+    // A model can save and preview concurrently. Refresh only the persisted
+    // baseline; never replace the user's current name or editable choices.
+    void (async () => {
+      for (const delay of [0, 1500, 3000]) {
+        if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+        if (!active || revision.current !== incomingRevision || busyRef.current) return;
+        try {
+          const {design} = await call<{design: SavedDesign}>('loop_get_design', {id: source.designId});
+          if (!active || revision.current !== incomingRevision || busyRef.current) return;
+          setPreview(current => current && !isSaved(current) ? reconcileSavedDesign(current, design) : current);
+          if (isSaved(reconcileSavedDesign(source, design))) return;
+        } catch { return; }
+      }
+    })();
+    return () => {active = false;};
+  }, [connected, incomingRevision]);
   useEffect(() => {
     if (!rawPreview || !connected) return;
     const current = ++contextRevision.current;

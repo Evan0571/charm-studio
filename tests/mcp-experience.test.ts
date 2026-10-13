@@ -5,7 +5,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { catalog, createDefaultConfig } from '../shared/catalog';
 import { quoteConfig } from '../shared/domain';
 import { designSignature } from '../shared/designState';
-import { checkoutExpired, isSaved, modelContext, type Preview } from '../src/chatgpt/state';
+import { checkoutExpired, isSaved, modelContext, reconcileSavedDesign, type Preview } from '../src/chatgpt/state';
 import { createLoopMcpServer } from '../server/mcp/server';
 import { createStudioService } from '../server/studio-service';
 import { createMcpTokens } from '../server/mcp/auth';
@@ -52,6 +52,20 @@ test('prepared checkout shares review state with the conversation without exposi
   assert.equal(checkoutExpired(checkout,59999),false);
   assert.equal(checkoutExpired(checkout,60000),true);
   assert.equal(checkoutExpired({...checkout,expiresAt:'invalid'},0),true);
+});
+
+test('a concurrent conversation save updates only the matching draft baseline and preserves unsaved card edits', () => {
+  const initial = preview();
+  const silver = {...initial, config: {...initial.config, metalTone: 'silver' as const}};
+  const design = {id: initial.designId!, name: silver.name, config: silver.config, createdAt: '2026-10-13', updatedAt: '2026-10-13'};
+  assert.equal(isSaved(silver), false);
+  assert.equal(isSaved(reconcileSavedDesign(silver, design)), true);
+  const localEdit = {...silver, name: 'Still editing', config: {...silver.config, slots: {...silver.config.slots, accent: 'wood'}}};
+  const checked = reconcileSavedDesign(localEdit, design);
+  assert.equal(checked.name, localEdit.name);
+  assert.deepEqual(checked.config, localEdit.config);
+  assert.equal(isSaved(checked), false);
+  assert.equal(reconcileSavedDesign(localEdit, {...design, id:'another-draft'}), localEdit);
 });
 
 test('desktop collection results do not direct users to a website collection belonging to another visitor', async () => {

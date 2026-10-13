@@ -23,7 +23,7 @@ try{
   const example=catalog.structuredContent.examples.find(item=>item.config.templateId==='hero');
   const preview=await client.callTool({name:'loop_preview_design',arguments:{name:'Offline desktop check',config:example.config}});
   assert.equal(preview.isError,undefined);
-  const resource=await client.readResource({uri:'ui://loop/design-v3.html'});
+  const resource=await client.readResource({uri:'ui://loop/design-v4.html'});
   assert.ok(Buffer.byteLength(JSON.stringify(resource))<10*1024*1024,'Initial UI must fit the default SDK message budget');
   assert.ok(resource.contents[0].text.includes('data:image/png;base64'));
   const asset=await client.callTool({name:'loop_get_preview_asset',arguments:{path:'/assets/models/atelier-tote.glb'}});

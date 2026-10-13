@@ -139,8 +139,13 @@ try {
   await page.waitForFunction(()=>window.loopHarness.trace.at(-1)?.structuredContent?.config.metalTone==='silver');
   assert.equal((await latest()).designId,savedId);
   assert.deepEqual((await latest()).config.lockedSlots,['main']);
-  await card.getByRole('button',{name:'Save changes',exact:true}).click();
-  await card.getByText('Design saved to this conversation’s collection.',{exact:true}).waitFor();
+  // Reproduce a host model saving after the preview result has already
+  // arrived. The card must reconcile its status without another user save.
+  await page.evaluate(async()=>{
+    const current=window.loopHarness.trace.at(-1).structuredContent;
+    await window.loopHarness.client.callTool({name:'loop_save_design',arguments:{id:current.designId,name:current.name,config:current.config}});
+  });
+  await card.getByRole('button',{name:'Saved',exact:true}).waitFor({timeout:10000});
   assert.equal((await records('/api/designs')).length,1);
   await card.getByRole('button',{name:'Change Accent',exact:true}).click();
   fault='delay';
@@ -159,5 +164,5 @@ try {
   await card.getByRole('button',{name:'Change Accent',exact:true}).click();
   await page.locator('#widget').screenshot({path:'tmp/mcp-experience-picker.png'});
   assert.deepEqual(errors,[]);
-  console.log(JSON.stringify({result:'PASS',cases:['asset failure retry with editable fallback','slow hosted assets recover automatically','bag assets load only on demand','click 3D to select a part','product thumbnails and search','failed quote preserves design','slow quote feedback and duplicate-click guard','unlock directly in picker','language shared with conversation','rename and saved state','undo restores saved version','expired quote refresh without ordering','receipt preserves draft/config/locks','conversation revision after checkout updates same saved draft','late quote cannot overwrite newer preview','bag rendering'],savedDesigns:1,testOrders:1,errors,calls},null,2));
+  console.log(JSON.stringify({result:'PASS',cases:['asset failure retry with editable fallback','slow hosted assets recover automatically','bag assets load only on demand','click 3D to select a part','product thumbnails and search','failed quote preserves design','slow quote feedback and duplicate-click guard','unlock directly in picker','language shared with conversation','rename and saved state','undo restores saved version','expired quote refresh without ordering','receipt preserves draft/config/locks','conversation revision after checkout updates same saved draft','parallel conversation save updates card status','late quote cannot overwrite newer preview','bag rendering'],savedDesigns:1,testOrders:1,errors,calls},null,2));
 } finally {await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));app.locals.closeMcp();storage.close();}

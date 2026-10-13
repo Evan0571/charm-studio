@@ -72,7 +72,7 @@ export function createLoopMcpServer(context: { storage: Storage; service: Studio
     inputSchema: z.strictObject({ config: configSchema }), annotations: readOnly,
   }, ({ config }) => result(() => ({ config: validateConfig(config), quote: quoteConfig(config), testOrdersOnly: true })));
   server.registerTool('loop_save_design', {
-    description: 'Save the user\'s chosen full configuration as a draft in this connected user\'s collection. Omit id for a new draft; pass an owned draft id to update it. Browser and desktop connections can have different identities. This does not create an order. Preserve locked parts unless the user explicitly unlocks them.',
+    description: 'Save the user\'s chosen full configuration as a draft in this connected user\'s collection. Omit id for a new draft; pass an owned draft id to update it. Browser and desktop connections can have different identities. This does not create an order. Preserve locked parts unless the user explicitly unlocks them. Wait for saving to finish before calling loop_preview_design for the saved draft.',
     inputSchema: z.strictObject({ name: nameSchema, config: configSchema, id: idSchema.optional() }), annotations: { ...write, destructiveHint: true },
   }, args => result(async () => ({ ...await service.saveDesign(owner, args), studioUrl })));
   server.registerTool('loop_list_designs', {

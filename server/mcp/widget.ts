@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { registerAppResource, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-export const WIDGET_URI = 'ui://loop/design-v3.html';
+export const WIDGET_URI = 'ui://loop/design-v4.html';
 export function registerLoopWidget(server: McpServer, origin: string) {
   const meta = {
     ui: { prefersBorder: true, csp: { connectDomains: [origin], resourceDomains: [origin] } },
@@ -20,6 +20,7 @@ export function registerLoopWidget(server: McpServer, origin: string) {
     return { contents: [{ uri, mimeType: RESOURCE_MIME_TYPE, text, _meta: meta }] };
   };
   registerAppResource(server, 'LOOP design preview', WIDGET_URI, { _meta: meta }, resource(WIDGET_URI));
+  registerAppResource(server, 'LOOP design preview (v3 URI)', 'ui://loop/design-v3.html', { _meta: meta }, resource('ui://loop/design-v3.html'));
   registerAppResource(server, 'LOOP design preview (v2 URI)', 'ui://loop/design-v2.html', { _meta: meta }, resource('ui://loop/design-v2.html'));
   registerAppResource(server, 'LOOP design preview (legacy URI)', 'ui://loop/design-v1.html', { _meta: meta }, resource('ui://loop/design-v1.html'));
 }
