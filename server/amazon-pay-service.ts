@@ -22,13 +22,14 @@ function matchesAmount(value: { amount: string; currencyCode: string } | null | 
 }
 
 function validateSession(session: AmazonPayCheckoutSession, order: Order, sessionId: string): void {
+  // Amazon may omit checkoutMode from Get responses; reject conflicting echoes.
   if (session.checkoutSessionId !== sessionId || session.releaseEnvironment !== 'Sandbox'
     || session.chargePermissionType !== 'OneTime'
     || session.merchantMetadata?.merchantReferenceId !== order.id
     || session.paymentDetails?.paymentIntent !== 'AuthorizeWithCapture'
     || !matchesAmount(session.paymentDetails?.chargeAmount, order.quote)
     || session.productType !== 'PayOnly'
-    || session.webCheckoutDetails?.checkoutMode !== 'ProcessOrder') {
+    || (session.webCheckoutDetails?.checkoutMode != null && session.webCheckoutDetails.checkoutMode !== 'ProcessOrder')) {
     throw new ValidationError('Amazon Pay 返回的订单与当前设计或金额不一致。', 409);
   }
 }
@@ -44,7 +45,7 @@ function validateBoundCompletion(session: AmazonPayCheckoutSession, order: Order
     || (session.paymentDetails != null && (session.paymentDetails.paymentIntent !== 'AuthorizeWithCapture'
       || !matchesAmount(session.paymentDetails.chargeAmount, order.quote)))
     || (session.productType != null && session.productType !== 'PayOnly')
-    || (session.webCheckoutDetails != null && session.webCheckoutDetails.checkoutMode !== 'ProcessOrder')) {
+    || (session.webCheckoutDetails?.checkoutMode != null && session.webCheckoutDetails.checkoutMode !== 'ProcessOrder')) {
     throw new ValidationError('Amazon Pay 返回的订单与当前设计或金额不一致。', 409);
   }
 }
