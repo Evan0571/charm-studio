@@ -233,6 +233,55 @@ test('captured payment stores verified IDs and concurrent or repeated completion
   } finally { await f.close(); }
 });
 
+test('an Open session without an echoed checkoutMode completes and verifies its Captured charge', async t => {
+  for (const checkoutMode of [undefined, null]) await t.test(String(checkoutMode), async () => {
+    const f = await fixture();
+    try {
+      const alice = f.client();
+      const order: Order = (await alice(`${paymentPath}/prepare`, 'POST', body())).data.order;
+      const session = f.provider.addSession(order);
+      session.webCheckoutDetails = { checkoutResultReturnUrl: `https://loop.example/?amazonPayReturn=1&orderId=${order.id}`,
+        ...(checkoutMode === null ? { checkoutMode: null } : {}) };
+      const result = await alice(`${paymentPath}/complete`, 'POST', { orderId: order.id, checkoutSessionId: session.checkoutSessionId });
+      assert.equal(result.status, 200); assert.equal(result.data.status, 'sandbox_paid');
+      assert.equal(result.data.payment.checkoutSessionId, session.checkoutSessionId);
+      assert.equal(f.provider.captures.length, 1); assert.equal(f.provider.captures[0].amount, order.quote.total.toFixed(2));
+      assert.deepEqual(f.provider.chargeReads, [`charge-${session.checkoutSessionId}`]);
+    } finally { await f.close(); }
+  });
+});
+
+test('a previously bound Completed session may return web URLs without an echoed checkoutMode', async () => {
+  const f = await fixture();
+  try {
+    const alice = f.client();
+    const order: Order = (await alice(`${paymentPath}/prepare`, 'POST', body())).data.order;
+    const session = f.provider.addSession(order); f.provider.readFailuresAfterCapture = 1;
+    const request = { orderId: order.id, checkoutSessionId: session.checkoutSessionId };
+    assert.equal((await alice(`${paymentPath}/complete`, 'POST', request)).status, 502);
+    assert.equal((await alice(`/api/orders/${order.id}`)).data.payment.checkoutSessionId, session.checkoutSessionId);
+    session.webCheckoutDetails = { checkoutResultReturnUrl: `https://loop.example/?amazonPayReturn=1&orderId=${order.id}` };
+    const result = await alice(`${paymentPath}/complete`, 'POST', request);
+    assert.equal(result.status, 200); assert.equal(result.data.status, 'sandbox_paid');
+    assert.equal(f.provider.captures.length, 1); assert.deepEqual(f.provider.chargeReads, [`charge-${session.checkoutSessionId}`]);
+  } finally { await f.close(); }
+});
+
+test('a previously bound Completed session with an explicit conflicting checkoutMode is rejected', async () => {
+  const f = await fixture();
+  try {
+    const alice = f.client();
+    const order: Order = (await alice(`${paymentPath}/prepare`, 'POST', body())).data.order;
+    const session = f.provider.addSession(order); f.provider.readFailuresAfterCapture = 1;
+    const request = { orderId: order.id, checkoutSessionId: session.checkoutSessionId };
+    assert.equal((await alice(`${paymentPath}/complete`, 'POST', request)).status, 502);
+    session.webCheckoutDetails = { checkoutMode: 'Review' };
+    assert.equal((await alice(`${paymentPath}/complete`, 'POST', request)).status, 409);
+    assert.equal((await alice(`/api/orders/${order.id}`)).data.status, 'sandbox_pending');
+    assert.equal(f.provider.captures.length, 1); assert.equal(f.provider.chargeReads.length, 0);
+  } finally { await f.close(); }
+});
+
 test('a captured payment recovers after a session-read failure without capturing again', async () => {
   const f = await fixture();
   try {
