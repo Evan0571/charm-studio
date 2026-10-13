@@ -16,7 +16,7 @@ export interface AmazonPayState { state: string; reasonCode?: string | null; rea
 export interface AmazonPayCheckoutSession {
   checkoutSessionId: string;
   statusDetails: AmazonPayState;
-  releaseEnvironment: 'Sandbox';
+  releaseEnvironment: 'Sandbox' | null;
   chargePermissionType?: string | null;
   productType?: string | null;
   storeId?: string | null;
@@ -28,6 +28,14 @@ export interface AmazonPayCheckoutSession {
   } | null;
   merchantMetadata?: { merchantReferenceId?: string | null } | null;
   webCheckoutDetails?: { checkoutMode?: string | null; checkoutResultReturnUrl?: string | null } | null;
+  chargeId?: string | null;
+  chargePermissionId?: string | null;
+}
+// Complete returns a receipt, with transaction metadata and environment nulled.
+// The service re-reads the session and verifies the associated Sandbox charge.
+export interface AmazonPayCompletion {
+  checkoutSessionId: string;
+  statusDetails: AmazonPayState;
   chargeId?: string | null;
   chargePermissionId?: string | null;
 }
@@ -43,7 +51,7 @@ export interface AmazonPayProvider {
   configured(): boolean;
   button(order: Order): Promise<AmazonPayButtonConfig>;
   getCheckoutSession(id: string): Promise<AmazonPayCheckoutSession>;
-  completeCheckoutSession(id: string, amount: string, idempotencyKey: string): Promise<AmazonPayCheckoutSession>;
+  completeCheckoutSession(id: string, amount: string, idempotencyKey: string): Promise<AmazonPayCompletion>;
   getCharge(id: string): Promise<AmazonPayCharge>;
 }
 
@@ -106,9 +114,11 @@ function state(value: unknown): AmazonPayState {
 }
 
 function session(value: unknown, expectedId: string): AmazonPayCheckoutSession {
-  if (!object(value) || value.checkoutSessionId !== expectedId || value.releaseEnvironment !== 'Sandbox') throw invalidResponse();
+  if (!object(value) || value.checkoutSessionId !== expectedId) throw invalidResponse();
+  const statusDetails = state(value.statusDetails);
+  if (value.releaseEnvironment !== 'Sandbox' && !(statusDetails.state === 'Completed' && value.releaseEnvironment === null)) throw invalidResponse();
   const result: AmazonPayCheckoutSession = {
-    checkoutSessionId: expectedId, statusDetails: state(value.statusDetails), releaseEnvironment: 'Sandbox',
+    checkoutSessionId: expectedId, statusDetails, releaseEnvironment: value.releaseEnvironment,
     chargeId: optionalString(value.chargeId), chargePermissionId: optionalString(value.chargePermissionId),
     storeId: optionalString(value.storeId), productType: optionalString(value.productType), chargePermissionType: optionalString(value.chargePermissionType),
   };
@@ -135,6 +145,15 @@ function session(value: unknown, expectedId: string): AmazonPayCheckoutSession {
     result.webCheckoutDetails = { checkoutMode: optionalString(value.webCheckoutDetails.checkoutMode), checkoutResultReturnUrl: optionalString(value.webCheckoutDetails.checkoutResultReturnUrl) };
   }
   return result;
+}
+
+function completion(value: unknown, expectedId: string): AmazonPayCompletion {
+  if (!object(value) || value.checkoutSessionId !== expectedId
+    || (value.releaseEnvironment !== undefined && value.releaseEnvironment !== null && value.releaseEnvironment !== 'Sandbox')) throw invalidResponse();
+  const statusDetails = state(value.statusDetails);
+  if (statusDetails.state !== 'Completed') throw invalidResponse();
+  return { checkoutSessionId: expectedId, statusDetails,
+    chargeId: optionalString(value.chargeId), chargePermissionId: optionalString(value.chargePermissionId) };
 }
 
 function charge(value: unknown, expectedId: string): AmazonPayCharge {
@@ -213,7 +232,7 @@ export function createAmazonPayProvider(options: { env?: NodeJS.ProcessEnv; clie
       const active = connected(), key = identifier(id);
       if (typeof value !== 'string' || !/^(?:0|[1-9]\d{0,5})\.\d{2}$/.test(value) || formatAmazonPayAmount(Number(value)) !== value) throw new ValidationError('Invalid Amazon Pay checkout amount.', 400);
       if (typeof idempotencyKey !== 'string' || !/^[A-Za-z0-9_-]{1,32}$/.test(idempotencyKey)) throw new ValidationError('Invalid Amazon Pay submission identifier.', 400);
-      return session(await request(() => active.completeCheckoutSession(key, { chargeAmount: { amount: value, currencyCode: 'USD' } }, { 'x-amz-pay-idempotency-key': idempotencyKey })), key);
+      return completion(await request(() => active.completeCheckoutSession(key, { chargeAmount: { amount: value, currencyCode: 'USD' } }, { 'x-amz-pay-idempotency-key': idempotencyKey })), key);
     },
     async getCharge(id) {
       const active = connected(), key = identifier(id);

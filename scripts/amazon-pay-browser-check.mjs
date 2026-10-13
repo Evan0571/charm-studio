@@ -22,7 +22,7 @@ const session = id => {
   const order = orderFromId(id, 'ui_session_');
   return { checkoutSessionId: id, statusDetails: { state: result === 'Canceled' ? 'Canceled' : 'Completed' }, releaseEnvironment: 'Sandbox', productType: 'PayOnly', chargePermissionType: 'OneTime',
     paymentDetails: { paymentIntent: 'AuthorizeWithCapture', chargeAmount: { amount: order.quote.total.toFixed(2), currencyCode: 'USD' } },
-    merchantMetadata: { merchantReferenceId: order.id }, webCheckoutDetails: { checkoutMode: 'ProcessOrder' }, chargeId: `ui_charge_${order.id}` };
+    merchantMetadata: { merchantReferenceId: order.id }, webCheckoutDetails: { checkoutMode: 'ProcessOrder' }, chargeId: `ui_charge_${order.id}`, chargePermissionId: `ui_permission_${order.id}` };
 };
 const provider = {
   configured: () => configured,
@@ -36,7 +36,7 @@ const provider = {
   completeCheckoutSession: async id => session(id),
   getCharge: async id => {
     const order = orderFromId(id, 'ui_charge_');
-    return { chargeId: id, statusDetails: { state: result }, releaseEnvironment: 'Sandbox',
+    return { chargeId: id, chargePermissionId: `ui_permission_${order.id}`, statusDetails: { state: result }, releaseEnvironment: 'Sandbox',
       chargeAmount: { amount: order.quote.total.toFixed(2), currencyCode: 'USD' }, captureAmount: { amount: order.quote.total.toFixed(2), currencyCode: 'USD' } };
   },
 };
@@ -55,15 +55,19 @@ const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 page.setDefaultTimeout(15000);
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
+let popups = 0;
+page.on('popup', () => { popups++; });
 let failSDK = false;
 await page.route('https://static-na.payments-amazon.com/checkout.js', route => failSDK ? route.abort() : route.fulfill({ contentType: 'application/javascript', body: `
-  window.amazon={Pay:{renderButton:(selector,config)=>{
+  window.amazonMockStats={rendered:0,signouts:0,checkouts:0};
+  window.amazon={Pay:{signout:()=>{window.amazonMockStats.signouts++;},renderButton:(selector,config)=>{
+    window.amazonMockStats.rendered++;
     window.lastAmazonConfig=config;
     window.amazonTestOnError=()=>config.onError();
     const button=document.createElement('button');
     button.textContent='Mock Amazon Pay checkout';button.type='button';
     button.style='width:100%;background:#ffd814;padding:12px;border-radius:4px';
-    button.onclick=()=>location.href=JSON.parse(config.createCheckoutSessionConfig.payloadJSON).returnURL;
+    button.onclick=()=>{window.amazonMockStats.checkouts++;location.href=JSON.parse(config.createCheckoutSessionConfig.payloadJSON).returnURL;};
     document.querySelector(selector).append(button);
   }}};
 ` }));
@@ -104,6 +108,18 @@ try {
   await page.getByRole('button', { name: 'Mock Amazon Pay checkout', exact: true }).waitFor();
   assert.equal(preparedCount, beforePrepared + 1);
   assert.equal(await counts(), before + 1);
+  const switchBefore = await page.evaluate(() => ({ config: JSON.stringify(window.lastAmazonConfig), stats: { ...window.amazonMockStats }, draft: localStorage.getItem('loop-workspace-draft-v1') }));
+  const beforeSwitchURL = page.url(), beforeSwitchPopups = popups;
+  assert.equal(switchBefore.stats.signouts, 0);
+  await page.getByRole('button', { name: 'Switch sandbox buyer', exact: true }).click();
+  await page.getByText('Select the Amazon Pay button again and sign in with your sandbox test buyer.', { exact: true }).waitFor();
+  const switchAfter = await page.evaluate(() => ({ config: JSON.stringify(window.lastAmazonConfig), stats: { ...window.amazonMockStats }, draft: localStorage.getItem('loop-workspace-draft-v1') }));
+  assert.deepEqual(switchAfter, { ...switchBefore, stats: { ...switchBefore.stats, signouts: 1 } });
+  assert.equal(page.url(), beforeSwitchURL);
+  assert.equal(popups, beforeSwitchPopups);
+  assert.equal(preparedCount, beforePrepared + 1);
+  assert.equal(await counts(), before + 1);
+  console.log('PASS switching sandbox buyer only signs out; order, design, button signature and popup count stay unchanged');
   await page.getByRole('button', { name: 'Confirm test order', exact: true }).click();
   await page.getByText('Test order confirmed', { exact: true }).waitFor();
   assert.equal(await counts(), before + 2);

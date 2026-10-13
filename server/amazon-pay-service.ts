@@ -33,6 +33,22 @@ function validateSession(session: AmazonPayCheckoutSession, order: Order, sessio
   }
 }
 
+function validateBoundCompletion(session: AmazonPayCheckoutSession, order: Order, sessionId: string): void {
+  // A previously verified session may lose its metadata after completion. The
+  // binding was persisted before capture; present fields must still agree.
+  if (order.payment?.checkoutSessionId !== sessionId || session.checkoutSessionId !== sessionId
+    || session.statusDetails.state !== 'Completed'
+    || (session.releaseEnvironment !== 'Sandbox' && session.releaseEnvironment !== null)
+    || (session.chargePermissionType != null && session.chargePermissionType !== 'OneTime')
+    || (session.merchantMetadata != null && session.merchantMetadata.merchantReferenceId !== order.id)
+    || (session.paymentDetails != null && (session.paymentDetails.paymentIntent !== 'AuthorizeWithCapture'
+      || !matchesAmount(session.paymentDetails.chargeAmount, order.quote)))
+    || (session.productType != null && session.productType !== 'PayOnly')
+    || (session.webCheckoutDetails != null && session.webCheckoutDetails.checkoutMode !== 'ProcessOrder')) {
+    throw new ValidationError('Amazon Pay 返回的订单与当前设计或金额不一致。', 409);
+  }
+}
+
 function requireAmazonOrder(order: Order | undefined): asserts order is Order {
   if (!order || order.payment?.provider !== 'amazon_pay' || order.payment.environment !== 'sandbox') throw new ValidationError('没有找到这份 Amazon Pay 沙盒订单。', 404);
 }
@@ -55,13 +71,16 @@ export function createAmazonPayService(storage: Storage, provider: AmazonPayProv
     // immutable and repeating the return request must never initiate payment.
     if (order.status === 'sandbox_paid') return order;
     let session = await provider.getCheckoutSession(sessionId);
-    if (session.checkoutSessionId !== sessionId || session.releaseEnvironment !== 'Sandbox') throw new ValidationError('Amazon Pay 返回的订单与当前设计或金额不一致。', 409);
+    const boundCompletion = session.statusDetails.state === 'Completed' && order.payment!.checkoutSessionId === sessionId;
+    if (session.checkoutSessionId !== sessionId || (session.releaseEnvironment !== 'Sandbox'
+      && !(boundCompletion && session.releaseEnvironment === null))) throw new ValidationError('Amazon Pay 返回的订单与当前设计或金额不一致。', 409);
     // Amazon can redact metadata after cancellation. Only accept this response
     // when the session was previously verified and bound to this owner's order.
     if (session.statusDetails.state === 'Canceled' && order.payment!.checkoutSessionId === sessionId) {
       return (await storage.updateAmazonPayOrder(owner, orderId, sessionId, canceledStatus(session.statusDetails.reasonCode))) ?? order;
     }
-    validateSession(session, order, sessionId);
+    if (boundCompletion) validateBoundCompletion(session, order, sessionId);
+    else validateSession(session, order, sessionId);
     const claimed = await storage.claimAmazonPaySession(owner, orderId, sessionId);
     if (!claimed) throw new ValidationError('这份订单已关联另一次 Amazon Pay 结账。', 409);
     if (claimed.status === 'sandbox_paid') return claimed;
@@ -74,12 +93,14 @@ export function createAmazonPayService(storage: Storage, provider: AmazonPayProv
       // Re-read the canonical session. Transport failures leave the order
       // pending; a later retry can reconcile a payment Amazon already captured.
       session = await provider.getCheckoutSession(sessionId);
-      validateSession(session, order, sessionId);
+      if (session.statusDetails.state === 'Completed') validateBoundCompletion(session, claimed, sessionId);
+      else validateSession(session, order, sessionId);
     }
     if (session.statusDetails.state !== 'Completed' || !session.chargeId) return claimed;
+    if (!session.chargePermissionId) throw new ValidationError('Amazon Pay 返回的付款与当前订单不一致。', 409);
     const charge = await provider.getCharge(sessionIdOf(session.chargeId));
     if (charge.releaseEnvironment !== 'Sandbox' || charge.chargeId !== session.chargeId
-      || (session.chargePermissionId && charge.chargePermissionId !== session.chargePermissionId)
+      || charge.chargePermissionId !== session.chargePermissionId
       || !matchesAmount(charge.chargeAmount, order.quote)) {
       throw new ValidationError('Amazon Pay 返回的付款与当前订单不一致。', 409);
     }
