@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { cordLeadPoints, getStrands, LEATHER_LOOP, MAIN_RING, TRANSFER_RING } from '../src/three/assemblyLayout';
-import { createLeatherBandGeometry } from '../src/three/connectorGeometry';
+import { createLeatherBandGeometry, leatherBandEdgePaths, leatherBandStitchPaths } from '../src/three/connectorGeometry';
 import { Raycaster, Mesh, MeshBasicMaterial, DoubleSide, Vector3 } from 'three';
 
 test('both hero chains start on their supporting loop for either connector', () => {
@@ -48,4 +48,19 @@ test('all metal-chain pivots follow the main ring lower arc', () => {
     const [x, y] = strand.anchor;
     assert.ok(Math.abs(Math.hypot(x, y - MAIN_RING.centerY) - MAIN_RING.radius) < 1e-8);
   }
+});
+
+test('leather strap edge paint and saddle stitches stay on the tapered faces and upper fold', () => {
+  const geometry = createLeatherBandGeometry(), material = new MeshBasicMaterial({side: DoubleSide});
+  const mesh = new Mesh(geometry, material), ray = new Raycaster();
+  try {
+    for (const path of [...leatherBandEdgePaths(), ...leatherBandStitchPaths()]) for (const point of path) {
+      const face = Math.sign(point.z);
+      ray.set(new Vector3(point.x, point.y, face), new Vector3(0, 0, -face));
+      const hit = ray.intersectObject(mesh)[0];
+      assert.ok(hit, `detail floats outside the strap at ${point.x}, ${point.y}`);
+      const gap = face * (point.z - hit.point.z);
+      assert.ok(gap > -.002 && gap < .0025, `detail stays against the leather, gap=${gap}`);
+    }
+  } finally { geometry.dispose(); material.dispose(); }
 });

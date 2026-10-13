@@ -1,0 +1,288 @@
+:root {
+  --ink: #252820;
+  --paper: #f7f5f0;
+  --surface: #fdfcf9;
+  --accent: #b65e42;
+  --coral: #b65e42;
+  --muted: #75776d;
+  --line: #e5e4dc;
+  color: var(--ink);
+  background: var(--paper);
+}
+body { background: var(--paper); }
+::selection { background: #e9cfbd; color: #252820; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+button:disabled { opacity: .42; }
+.logo { color: var(--accent); gap: 8px; }
+.logo > span { font-size: 32px; letter-spacing: -1.8px; }
+.atelier-app { min-height: 100dvh; color: var(--ink); background: var(--paper); }
+.skip-link { position: fixed; top: -70px; left: 24px; z-index: 100; padding: 12px 18px; background: var(--ink); color: white; border-radius: 4px; }
+.skip-link:focus { top: 12px; }
+.atelier-header { height: 86px; background: #f7f5f0f2; backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
+.atelier-header .header-inner { max-width: 1440px; padding: 0 48px; }
+.atelier-header nav { gap: 34px; }
+.atelier-header nav button { font-size: 13px; color: #77796f; padding: 0; }
+.atelier-header nav button.active { color: var(--ink); }
+.atelier-header nav button.active:after { height: 1px; background: var(--accent); bottom: 19px; }
+.atelier-header .header-end { gap: 13px; }
+.atelier-header .circle-button { border-color: #dcded2; background: transparent; }
+.atelier-app .language-switcher { background: transparent; border-color: #dcddd3; color: #74776b; font-size: 11px; }
+.atelier-main { max-width: 1440px; padding: 34px 48px 64px; }
+.atelier-main.discovery-main { padding-top: 30px; min-height: calc(100dvh - 270px); }
+.studio-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; margin-bottom: 30px; }
+.studio-heading .eyebrow { display: block; color: #8c8d7e; font-size: 9px; letter-spacing: 2.4px; margin-bottom: 10px; }
+.studio-heading h1 { font: 400 clamp(29px, 2.7vw, 42px)/1.2 Georgia, 'Songti SC', serif; letter-spacing: -.9px; max-width: 800px; overflow-wrap: anywhere; }
+.studio-heading p { font-size: 12px; line-height: 1.8; margin-top: 11px; color: var(--muted); }
+.workspace-actions { display: flex; align-items: center; gap: 20px; padding-bottom: 4px; flex-shrink: 0; }
+.draft-status { font-size: 10px; color: #828578; display: inline-flex; align-items: center; gap: 7px; }
+.draft-status > span { width: 5px; height: 5px; background: #8a9674; border-radius: 50%; }
+.atelier-app .primary, .atelier-app .secondary, .atelier-modal .danger-button { min-height: 45px; padding: 12px 18px; border-radius: 6px; font-size: 12px; font-weight: 500; gap: 10px; transition: background .2s, border-color .2s, transform .2s; }
+.atelier-app .primary { background: var(--ink); background-image: none; color: #fffdf6; box-shadow: none; border: 1px solid var(--ink); }
+.atelier-app .primary:hover:not(:disabled) { color: white; background: #454a3b; border-color: #454a3b; }
+.atelier-app .secondary { border: 1px solid #d4d7c9; background: transparent; color: var(--ink); }
+.atelier-app .secondary:hover:not(:disabled) { border-color: #a0a58e; background: #eeeee4; }
+.atelier-app .text-action { color: #656b58; font-size: 11px; text-decoration: none; border-bottom: 1px solid #d8dbcf; padding-bottom: 3px; }
+.atelier-app .text-action:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.atelier-app .studio-grid { grid-template-columns: minmax(0, 1fr) 420px; gap: 36px; align-items: start; }
+.atelier-workspace .preview-column { top: 108px; }
+.atelier-workspace .preview-stage-3d { height: min(610px, calc(100dvh - 270px)); min-height: 430px; border-radius: 10px; background: #eeece8; }
+.atelier-workspace .preview-stage-3d .preview-top { top: 20px; left: 20px; right: 20px; }
+.atelier-workspace .live-pill { font-size: 10px; min-height: 32px; padding: 7px 12px; background: #fbfaf5dd; border: 1px solid #fff8; color: #777a6b; }
+.atelier-workspace .view-switch { background: #dddcd5d6; padding: 3px; }
+.atelier-workspace .view-switch button { font-size: 10px; min-height: 31px; padding: 7px 13px; }
+.atelier-workspace .view-switch button.active { background: #fcfbf6; color: var(--ink); }
+.atelier-workspace .scene-bottom { bottom: 17px; }
+.atelier-workspace .scene-bottom .preview-hint { background: #fbfaf3d9; color: #787b6b; font-size: 10px; padding: 8px 11px; gap: 6px; }
+.atelier-workspace .zoom-controls { background: #fbfaf3d9; border: 0; }
+.atelier-workspace .zoom-controls span { min-width: 34px; text-align: center; font-size: 10px; }
+.atelier-workspace .zoom-controls button { width: 28px; height: 28px; }
+.atelier-workspace .scene-toolbar { padding: 9px 0; gap: 12px; min-height: 50px; justify-content: center; border-bottom: 1px solid var(--line); }
+.atelier-workspace .scene-toolbar button { padding: 7px 9px; font-size: 10px; min-height: 31px; border-radius: 5px; color: #7d806f; }
+.atelier-workspace .scene-toolbar button[aria-pressed=true] { background: #e9ebde; color: #4e583e; }
+.scene-more { position: relative; }
+.scene-more summary { list-style: none; cursor: pointer; color: #7d806f; width: 28px; height: 30px; display: grid; place-items: center; border-radius: 5px; }
+.scene-more summary::-webkit-details-marker { display: none; }
+.scene-more[open] summary { background: #e9ebde; }
+.scene-more > div { position: absolute; right: 0; top: 38px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 32px #25282010; padding: 6px; border-radius: 7px; min-width: 130px; z-index: 4; }
+.scene-more > div > button { width: 100%; }
+.atelier-workspace .preview-caption { padding: 15px 0; align-items: center; gap: 18px; }
+.atelier-workspace .preview-caption strong { font-size: 13px; font-weight: 500; }
+.atelier-workspace .preview-caption span { font-size: 10px; color: #8b8d80; line-height: 1.7; }
+.atelier-workspace .edit-actions { gap: 12px; align-self: center; }
+.atelier-workspace .edit-actions button { font-size: 10px; color: #7e826f; min-height: 26px; }
+.preview-footnote { display: flex; align-items: baseline; gap: 25px; padding-top: 16px; }
+.preview-footnote > span { flex: none; font-size: 8px; letter-spacing: 1.5px; color: #9b9e8e; }
+.preview-footnote > p { font-size: 10px; line-height: 1.8; color: #909383; }
+.atelier-app .bag-styling { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+.atelier-app .bag-selector { flex-direction: column; align-items: flex-start; gap: 8px; padding: 0; border: 0; }
+.atelier-app .bag-selector > span, .atelier-app .bag-color-heading { font-size: 10px; color: #8b8f7f; }
+.atelier-app .bag-selector > div { gap: 5px; }
+.atelier-app .bag-selector button { min-height: 30px; font-size: 9px; padding: 6px 8px; border-color: #dddfd3; background: transparent; }
+.atelier-app .bag-selector button.selected { background: #eeeee4; border-color: #8d967b; }
+.atelier-app .bag-color-controls { padding: 0; border: 0; }
+.atelier-app .bag-color-heading { margin-bottom: 7px; }
+.atelier-app .bag-color-options { gap: 4px; }
+.atelier-app .bag-color-options button { min-height: 28px; padding: 3px; }
+.atelier-app .bag-color-options .bag-original-color { min-height: 28px; font-size: 9px; padding: 6px 8px; background: transparent; }
+.atelier-app .bag-color-swatch { width: 28px; }
+.atelier-app .bag-color-swatch i { width: 20px; height: 20px; }
+.custom-color-details { position: relative; font-size: 9px; color: #7c816f; }
+.custom-color-details summary { cursor: pointer; list-style: none; padding: 7px; }
+.custom-color-details > div { position: absolute; top: 30px; right: 0; display: flex; gap: 5px; align-items: center; padding: 10px; background: var(--surface); box-shadow: 0 8px 30px #25282012; border: 1px solid var(--line); border-radius: 6px; z-index: 5; }
+.custom-color-details input[type=color] { width: 30px; height: 30px; border: 0; padding: 0; }
+.atelier-editor { background: #fdfcf9; border-color: #e1e3d7; border-radius: 10px; box-shadow: none; padding: 24px 24px 0; position: sticky; top: 108px; display: flex; flex-direction: column; max-height: calc(100dvh - 270px); min-height: 440px; }
+.atelier-editor .panel-title { flex: none; }
+.atelier-editor .editor-options { min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #c6cdb9 transparent; padding-right: 3px; }
+.atelier-editor .checkout-panel { flex: none; }
+.atelier-main:focus { outline: none; }
+.atelier-editor .panel-title { margin-bottom: 17px; }
+.editor-step-nav { display: grid; grid-template-columns: repeat(3, 1fr); flex: none; gap: 6px; padding-bottom: 17px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+.editor-step-nav button { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 11px; min-height: 34px; padding: 7px 6px; border: 1px solid transparent; color: #818b71; border-radius: 5px; }
+.editor-step-nav button > span { font-size: 8px; color: #a1ac8f; }
+.editor-step-nav button[aria-selected=true] { background: #e9eddf; border-color: #e0e6d3; color: #526442; }
+.editor-step-nav button[aria-selected=true] > span { color: #83976c; }
+.atelier-editor .step-description { font-size: 11px; color: #8a9678; line-height: 1.8; margin-top: 12px; }
+.atelier-editor .step-next { margin: 21px 0 3px; font-size: 11px; }
+.atelier-editor .options-section { border-bottom: 0; margin-bottom: 0; }
+.atelier-editor .panel-title h2 { font-size: 18px; font-weight: 500; letter-spacing: -.4px; }
+.atelier-editor .panel-title > span { font-size: 10px; color: #939785; }
+.atelier-editor .options-section { margin-bottom: 20px; padding-bottom: 20px; border-color: var(--line); }
+.atelier-editor .section-label { margin-bottom: 13px; gap: 8px; }
+.atelier-editor .section-label h3 { font-size: 12px; font-weight: 500; gap: 10px; }
+.atelier-editor .section-label h3 > span { font-size: 9px; color: #a2a795; }
+.atelier-editor .section-label > small { font-size: 9px; color: #9a9f8d; }
+.atelier-editor .studio-template-row { gap: 8px; margin: 0; }
+.atelier-editor .template-choice { flex-direction: column; min-height: 108px; padding: 8px 5px 10px; border-radius: 6px; gap: 8px; border: 1px solid #e4e6dc; background: transparent; text-align: center; justify-content: flex-start; }
+.atelier-editor .template-choice.selected { border: 1px solid #8d967a; background: #f0f1e7; }
+.atelier-editor .template-art { width: 100%; height: 65px; background: transparent; border-radius: 3px; }
+.atelier-editor .template-art > img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+.atelier-editor .template-choice strong { font-size: 10px; line-height: 1.4; font-weight: 500; }
+.option-description { color: #9a9d8e; font-size: 10px; margin-top: 10px; line-height: 1.7; }
+.atelier-editor .base-options { gap: 8px; margin-bottom: 15px; }
+.atelier-editor .connector-choice { height: 41px; border-color: #e1e4d7; border-radius: 5px; font-size: 11px; }
+.atelier-editor .connector-choice.selected { border: 1px solid #8e977c; background: #f2f2e9; }
+.atelier-editor .connector-icon.ring { width: 16px; height: 16px; border-width: 2.5px; }
+.atelier-editor .connector-icon.leather { width: 10px; height: 21px; border-width: 3px; }
+.atelier-editor .finish-row > span, .atelier-editor .cord-row span { font-size: 11px; color: #858a77; }
+.atelier-editor .metal-options { gap: 5px; }
+.atelier-editor .metal-options button { font-size: 10px; min-height: 31px; border-color: #e1e4d7; padding: 6px 8px; }
+.atelier-editor .metal-options button.selected { border-color: #939d81; background: #f2f3e9; }
+.atelier-editor .metal-dot { width: 14px; height: 14px; }
+.atelier-editor .cord-row { margin-top: 15px; gap: 9px; }
+.atelier-editor .cord-row small { font-size: 9px; color: #9ca18f; }
+.atelier-editor .swatches { gap: 8px; }
+.atelier-editor .swatches button { width: 26px; height: 26px; }
+.atelier-editor .swatches button.selected:after { border-color: #939d81; }
+.atelier-editor .slots-list { gap: 6px; margin-bottom: 16px; }
+.atelier-editor .slots-list button { font-size: 10px; padding: 6px 8px; min-height: 31px; border-color: #e1e4d7; color: #8d947e; }
+.atelier-editor .slots-list button.selected { background: #556048; border-color: #556048; color: white; }
+.atelier-editor .slots-list button > span { width: 14px; height: 14px; font-size: 8px; background: #f0f1e7; color: #8f977f; }
+.atelier-editor .slots-list button.selected > span { color: #556048; background: white; }
+.atelier-editor .current-part { margin-bottom: 14px; min-height: 49px; }
+.atelier-editor .current-part small { font-size: 9px; color: #9b9f90; }
+.atelier-editor .current-part strong { font-size: 13px; font-weight: 500; }
+.part-material { font-size: 10px; color: #8e9680; }
+.atelier-editor .lock-button { font-size: 10px; color: #919884; min-height: 32px; padding: 6px; }
+.atelier-editor .lock-button.locked { background: #e9eedc; color: #667451; }
+.atelier-editor .locked-note { font-size: 11px; background: #eef1e5; color: #73805e; }
+.atelier-editor .search-field { height: 38px; border-color: #e4e6dc; border-radius: 5px; background: transparent; margin-bottom: 13px; }
+.atelier-editor .search-field input { font-size: 11px; color: #515947; }
+.atelier-editor .search-field:focus-within { border-color: #a2ac90; }
+.atelier-editor .search-field input::placeholder { color: #a2a796; }
+.atelier-editor .category-filter { gap: 20px; margin: 0 0 12px; }
+.atelier-editor .category-filter button { font-size: 10px; min-height: 25px; }
+.atelier-editor .category-filter button.active { color: #586747; }
+.atelier-editor .parts-grid { gap: 15px 9px; max-height: 310px; scrollbar-color: #c8cebb transparent; }
+.atelier-editor .part-image { height: 90px; border-radius: 5px; background: #f0eee8; transition: background .18s, border-color .18s; }
+.atelier-editor .part-card.selected .part-image { border: 1px solid #909b7d; background: #eeeee4; }
+.atelier-editor .part-card strong { font-size: 10px; line-height: 1.5; margin-top: 7px; color: #59604f; font-weight: 500; }
+.atelier-editor .part-card > span { font-size: 10px; color: #929984; }
+.atelier-editor .part-check { background: #62704e; width: 13px; height: 13px; }
+.atelier-editor .parts-section { padding-bottom: 16px; margin-bottom: 0; }
+.atelier-editor .remove-part { font-size: 10px; color: #99a08b; margin-top: 12px; }
+.atelier-editor .checkout-panel { padding: 19px 24px 17px; background: #f5f5ed; border-color: #e1e4d7; }
+.atelier-editor .price-line { margin-bottom: 16px; }
+.atelier-editor .price-line > div > span { font-size: 10px; color: #939b85; }
+.atelier-editor .price-line strong { font-size: 29px; font-weight: 500; letter-spacing: -.8px; }
+.atelier-editor .price-line strong small { font-size: 9px; color: #8e967f; font-weight: 400; margin-left: 8px; letter-spacing: .5px; }
+.atelier-editor .price-line .text-action { font-size: 10px; }
+.studio-checkout-actions { display: grid; grid-template-columns: 1fr 1.25fr; gap: 8px; }
+.studio-checkout-actions button { padding: 11px 10px !important; font-size: 11px !important; min-height: 43px !important; }
+.atelier-editor .checkout-note { font-size: 9px; color: #9aa18e; margin-top: 11px; }
+.atelier-footer { max-width: 1440px; margin: 0 auto; padding: 32px 48px 40px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 30px; }
+.atelier-footer > div:first-child { display: flex; align-items: center; gap: 22px; }
+.atelier-footer > div:first-child p { font-size: 10px; color: #969b87; }
+.atelier-footer nav { display: flex; gap: 25px; }
+.atelier-footer nav button { font-size: 10px; color: #828975; padding: 5px 0; }
+.atelier-footer > div:last-child { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.atelier-footer > div:last-child span { font-size: 10px; color: #969d89; }
+.atelier-footer > div:last-child small { font-size: 9px; color: #a8af9c; }
+.atelier-app .toast { background: #353e2d; color: #f8f9ed; font-size: 11px; border-radius: 7px; box-shadow: 0 8px 28px #25282018; }
+.atelier-app .toast button:hover { color: white; }
+.atelier-app .modal-backdrop { background: #2528205c; backdrop-filter: blur(7px); }
+.atelier-modal { width: 490px; background: var(--surface); border-radius: 12px; padding: 27px 28px; max-height: calc(100dvh - 48px); box-shadow: 0 22px 100px #25282024; }
+.atelier-modal .modal-heading { margin-bottom: 16px; }
+.atelier-modal .modal-heading h2 { font: 400 25px/1.25 Georgia, 'Songti SC', serif; letter-spacing: -.5px; }
+.atelier-modal .circle-button { width: 31px; height: 31px; border: 0; background: #eff0e8; }
+.atelier-modal .modal-subtitle { font-size: 11px; color: #89917a; line-height: 1.8; margin-bottom: 18px; }
+.atelier-modal .save-preview { height: 205px; background: #eeece8; border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
+.atelier-modal .save-preview .product-preview { height: 100%; }
+.atelier-modal .field-label { font-size: 10px; color: #7f8970; margin-bottom: 8px; }
+.atelier-modal .text-input { min-height: 43px; font-size: 12px; border: 1px solid #d7ddca; background: transparent; border-radius: 5px; padding: 11px 12px; }
+.atelier-modal .text-input:focus { border-color: #929f7c; box-shadow: 0 0 0 3px #909f7b10; }
+.atelier-modal .field-hint { font-size: 10px; color: #9ca58e; margin: 10px 0 18px; }
+.atelier-modal .full-width + .full-width { margin-top: 9px; }
+.atelier-modal .modal-bottom-link { margin: 15px auto 0; display: flex; width: max-content; font-size: 10px; }
+.atelier-modal .checkout-summary { gap: 18px; padding-bottom: 19px; margin-bottom: 18px; border-color: var(--line); }
+.atelier-modal .mini-preview { width: 104px; height: 132px; background: #eeece8; border-radius: 6px; flex: none; }
+.atelier-modal .mini-preview .product-preview { height: 100%; }
+.atelier-modal .mini-preview .product-preview, .atelier-collection .order-art .product-preview { min-height: 0; }
+.atelier-modal .checkout-summary h3 { font-size: 15px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+.atelier-modal .checkout-summary p { font-size: 10px; color: #919b80; line-height: 1.7; }
+.atelier-modal .eyebrow { font-size: 8px; color: #9eaa8b; }
+.atelier-modal .bill-lines { gap: 13px; font-size: 11px; color: #7b8769; }
+.atelier-modal .bill-total { margin: 19px 0; padding-top: 17px; border-color: var(--line); font-size: 16px; }
+.atelier-modal .test-notice { background: #f0f1e7; border-radius: 6px; color: #818d6e; padding: 13px; margin: 18px 0; }
+.atelier-modal .test-notice strong { font-size: 11px; font-weight: 500; }
+.atelier-modal .test-notice p > span { font-size: 10px; color: #95a083; line-height: 1.8; }
+.atelier-modal .receipt-preview { height: 165px; border-radius: 6px; overflow: hidden; background: #eeece8; margin: 10px 0 20px; }
+.atelier-modal .receipt-preview .product-preview { height: 100%; }
+.saved-celebration { text-align: center; margin-bottom: 22px; }
+.saved-celebration .status-tag { margin-bottom: 12px; }
+.saved-celebration h3 { font: 400 23px/1.35 Georgia, 'Songti SC', serif; }
+.saved-celebration p { color: #8f9b7e; font-size: 10px; line-height: 1.8; margin-top: 9px; }
+.atelier-modal .receipt-details { font-size: 11px; border-color: var(--line); margin-bottom: 20px; }
+.atelier-modal .receipt-details code { font-size: 9px; color: #969f87; overflow-wrap: anywhere; }
+.atelier-modal .help-steps { gap: 20px; margin: 24px 0; }
+.atelier-modal .help-steps > div > span { background: #eef1e2; color: #92a07d; font-size: 10px; border-radius: 5px; }
+.atelier-modal .help-steps strong { font-size: 13px; font-weight: 500; }
+.atelier-modal .help-steps small { font-size: 11px; line-height: 1.9; color: #8c9a77; }
+.atelier-modal .danger-button { background: #9f5140; color: white; border: 1px solid #9f5140; display: flex; align-items: center; justify-content: center; }
+.atelier-modal .danger-button:hover:not(:disabled) { background: #864433; color: white; }
+.review-loading { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 17px; font-size: 12px; color: #91a07b; }
+.atelier-app .spinner { border-color: #dce2d0; border-top-color: #899b70; }
+.atelier-app .error-message { font-size: 11px; line-height: 1.8; color: #a1604e; padding: 10px 12px; background: #f6ece5; border-radius: 5px; margin-bottom: 12px; }
+.atelier-collection { min-height: 500px; }
+.atelier-collection .saved-tabs { gap: 30px; margin-bottom: 28px; border-color: var(--line); }
+.atelier-collection .saved-tabs button { font-size: 12px; gap: 9px; padding-bottom: 15px; }
+.atelier-collection .saved-tabs button.active { border-bottom-color: #8d9b79; }
+.atelier-collection .saved-tabs button span { background: #e9eedc; color: #8b9b73; font-size: 9px; }
+.atelier-collection .saved-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 25px; }
+.atelier-collection .saved-card { border: 1px solid #e0e5d4; border-radius: 8px; box-shadow: none; background: #fdfcf9; }
+.atelier-collection .saved-art { height: 300px; background: #eeece8; }
+.atelier-collection .saved-art .product-preview { width: 100%; height: 100%; }
+.atelier-collection .saved-art > span { color: #5c7043; background: #fbfdf1dd; border-radius: 5px; font-size: 10px; }
+.atelier-collection .saved-card-info { padding: 20px; }
+.atelier-collection .saved-card-info h3 { font: 400 20px/1.3 Georgia, 'Songti SC', serif; }
+.atelier-collection .saved-card-info p { font-size: 10px; color: #91a077; margin-top: 8px; }
+.atelier-collection .saved-card-info .circle-button { border: 0; background: #f1f3e7; color: #9baa87; width: 31px; height: 31px; }
+.atelier-collection .saved-footnote { font-size: 10px; color: #a1ad90; margin-top: 28px; }
+.collection-empty { display: grid; grid-template-columns: .85fr 1.7fr; gap: 64px; align-items: center; min-height: 355px; padding: 35px 0; }
+.collection-empty h2 { font: 400 32px/1.3 Georgia, 'Songti SC', serif; letter-spacing: -.5px; margin: 10px 0 16px; }
+.collection-empty p { font-size: 12px; color: #91a07c; line-height: 1.9; }
+.collection-starters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.collection-starters button { padding: 0; text-align: left; border-radius: 6px; overflow: hidden; background: #efeee8; border: 1px solid #e3e5d9; transition: border-color .2s, transform .2s; }
+.collection-starters button:hover { transform: translateY(-3px); border-color: #a0ad8a; }
+.collection-starters img { width: 100%; height: 205px; object-fit: contain; mix-blend-mode: multiply; }
+.collection-starters button > span { padding: 14px 12px; display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11px; border-top: 1px solid #e0e4d5; background: #fafbf2; }
+.atelier-collection .order-card { border-color: #e0e5d4; background: #fdfcf9; border-radius: 8px; padding: 20px; gap: 20px; }
+.atelier-collection .order-art { width: 100px; height: 130px; background: #eeece8; }
+.atelier-collection .order-art .product-preview { height: 100%; }
+.atelier-collection .order-card h3 { font: 400 22px/1.3 Georgia, 'Songti SC', serif; margin-top: 8px; }
+.atelier-collection .order-card p, .atelier-collection .order-card small { font-size: 10px; color: #8d9d76; }
+.atelier-app .status-tag { color: #718558; background: #edf2df; font-size: 9px; padding: 5px 9px; border-radius: 5px; }
+.atelier-collection .empty-state { min-height: 340px; }
+.atelier-collection .empty-state h2 { font: 400 27px/1.3 Georgia, 'Songti SC', serif; }
+.atelier-collection .empty-state p { font-size: 12px; color: #91a277; line-height: 1.8; }
+/* Keep functional labels readable; fine print is reserved for editorial notes. */
+.atelier-header nav button { font-size: 14px; }
+.atelier-editor .section-label h3 { font-size: 13px; }
+.atelier-editor .section-label > small { color: #7e876e; font-size: 10px; }
+.atelier-editor .template-choice strong, .atelier-editor .connector-choice { font-size: 12px; }
+.atelier-editor .finish-row > span, .atelier-editor .cord-row span, .atelier-editor .metal-options button { font-size: 12px; }
+.atelier-editor .slots-list button { font-size: 11px; color: #748065; }
+.atelier-editor .slots-list button.selected { color: white; }
+.atelier-editor .current-part strong { font-size: 14px; }
+.atelier-editor .current-part small, .part-material { font-size: 11px; color: #79876a; }
+.atelier-editor .search-field input { font-size: 12px; }
+.atelier-editor .part-card strong { font-size: 11px; color: #59644d; }
+.atelier-editor .part-card > span { font-size: 11px; color: #778769; }
+.atelier-editor .category-filter button, .atelier-editor .price-line .text-action { font-size: 11px; }
+.atelier-editor .price-line > div > span { font-size: 11px; color: #7e8b6e; }
+.studio-checkout-actions button { font-size: 12px !important; }
+.atelier-modal .modal-subtitle, .atelier-modal .bill-lines { font-size: 12px; color: #748263; }
+.atelier-modal .field-label { font-size: 12px; color: #7f8970; }
+.atelier-modal .field-hint { font-size: 11px; }
+@media (min-width: 1500px) { .atelier-app .studio-grid { grid-template-columns: minmax(0, 1fr) 440px; gap: 44px; } }
+@media (min-width: 701px) and (max-width: 1100px) {
+  .atelier-header .header-inner, .atelier-main, .atelier-footer { padding-left: 30px; padding-right: 30px; }
+  .atelier-app .studio-grid { grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; }
+  .workspace-actions { flex-direction: column; align-items: flex-end; gap: 10px; }
+  .atelier-header nav { gap: 23px; }
+  .atelier-header nav button { font-size: 11px; }
+  .atelier-app .bag-styling { grid-template-columns: 1fr; gap: 13px; }
+  .preview-footnote { display: none; }
+  .atelier-workspace .scene-toolbar { gap: 3px; }
+  .atelier-workspace .scene-toolbar button { font-size: 9px; padding: 7px 6px; }
+}
+@media (prefers-reduced-motion: reduce) { .atelier-app *, .atelier-app *:before, .atelier-app *:after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

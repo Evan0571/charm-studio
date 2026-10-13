@@ -1,0 +1,55 @@
+.product-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #f7f5f0;
+  color: #252820;
+}
+.product-preview-image,
+.product-preview-reference {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  object-fit: contain;
+}
+.product-preview-reference { opacity: .8; transition: opacity .35s ease; }
+.product-preview-reference.is-hidden { opacity: 0; }
+.product-preview-scene { position: absolute; inset: 0; opacity: 0; transition: opacity .45s ease; }
+.product-preview-scene.is-ready { opacity: 1; }
+.product-preview-scene > .scene-viewer { width: 100%; height: 100%; }
+.product-preview:not(.is-interactive) .product-preview-scene { pointer-events: none; }
+.product-preview-status {
+  position: absolute;
+  z-index: 2;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: calc(100% - 28px);
+  padding: 8px 11px;
+  border: 1px solid rgba(37,40,32,.08);
+  border-radius: 6px;
+  background: rgba(247,245,240,.94);
+  color: #686a60;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  pointer-events: none;
+}
+.product-preview-loading-dot { flex: 0 0 5px; width: 5px; height: 5px; border-radius: 50%; background: #b65e42; animation: product-preview-breathe 1.5s ease-in-out infinite; }
+.product-preview-status.is-error { justify-content: space-between; width: auto; color: #755447; pointer-events: auto; }
+.product-preview-status small { display: block; font-size: 10px; color: #74766d; }
+.product-preview-status button { display: inline-flex; align-items: center; gap: 4px; padding: 6px 7px; border: 0; background: transparent; color: #b65e42; font: inherit; cursor: pointer; }
+.product-preview-status button:focus-visible { outline: 2px solid #b65e42; outline-offset: 2px; }
+@keyframes product-preview-breathe { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) {
+  .product-preview-reference, .product-preview-scene { transition: none; }
+  .product-preview-loading-dot { animation: none; }
+}

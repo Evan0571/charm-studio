@@ -1,4 +1,5 @@
 import type { DesignConfig, Part } from '../../shared/types';
+import { BANANA_POSE } from './fruitAssembly';
 
 export type XYZ = [number, number, number];
 export interface StrandSpec {
@@ -42,9 +43,20 @@ export function getStrands(config: Pick<DesignConfig, 'templateId' | 'connectorI
   ];
 }
 
+export function partAttachmentPoint(part: Part | undefined): XYZ {
+  if (part?.category === 'bead') return [0, .29, 0];
+  if (part?.shape === 'pear') return [.03, .505, .005];
+  if (part?.shape === 'orange') return [.01, .458, .005];
+  if (part?.shape === 'banana') {
+    const angle = BANANA_POSE.rotation[2], [x, y] = BANANA_POSE.position;
+    return [Math.cos(angle)*-.424-Math.sin(angle)*.386+x, Math.sin(angle)*-.424+Math.cos(angle)*.386+y, 0];
+  }
+  const top: Record<string, number> = { cupcake: .48, heart: .286, cherry: .38, star: .396, flower: .41, shell: .4 };
+  return [0, top[part?.shape ?? ''] ?? .4, 0];
+}
+
 export function pendantOffset(part: Part | undefined, spec: StrandSpec) {
-  const top = part?.category === 'bead' ? .29 : part?.shape === 'pear' ? .5 : part?.shape === 'orange' ? .45 : part?.shape === 'banana' ? .5 : part?.shape === 'cupcake' ? .48 : .4;
-  return -spec.length - .035 - top * spec.scale;
+  return -spec.length - .035 - partAttachmentPoint(part)[1] * spec.scale;
 }
 
 export const BAG_OFFSET: XYZ = [-.35, 0, -.36];
