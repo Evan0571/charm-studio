@@ -7,7 +7,7 @@ export const WIDGET_URI = 'ui://loop/design-v1.html';
 export function registerLoopWidget(server: McpServer, origin: string) {
   const meta = {
     ui: { prefersBorder: true, csp: { connectDomains: [origin], resourceDomains: [origin] } },
-    'openai/widgetDescription': 'LOOP interactive bag-charm preview with exact USD pricing, part locks, save and explicit test-order confirmation.',
+    'openai/widgetDescription': 'LOOP default 3D bag-charm preview and illustrated replacement cards for main and auxiliary parts, with exact USD pricing, locks, saving and explicit test-order confirmation.',
     'openai/widgetPrefersBorder': true,
     'openai/widgetCSP': { connect_domains: [origin], resource_domains: [origin] },
   };

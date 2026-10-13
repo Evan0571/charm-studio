@@ -5,14 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch server/index.ts",
-    "build": "tsc --noEmit && vite build && pnpm build:mcp-ui",
+    "build": "node scripts/build-mcp-assets.mjs && tsc --noEmit && vite build && pnpm build:mcp-ui",
     "start": "node --import tsx scripts/start-production.mjs",
     "setup:check": "node scripts/doctor.mjs",
     "test": "tsx --test tests/*.test.ts",
     "mcp:smoke": "node --import tsx scripts/mcp-smoke.mjs",
-    "build:mcp-ui": "vite build --config vite.mcp.config.ts",
+    "build:mcp-ui": "node scripts/build-mcp-assets.mjs && vite build --config vite.mcp.config.ts",
     "chatgpt:connect": "node scripts/chatgpt-connect.mjs",
-    "chatgpt:ui-check": "node --import tsx scripts/chatgpt-browser-check.mjs"
+    "chatgpt:ui-check": "node --import tsx scripts/chatgpt-browser-check.mjs",
+    "chatgpt:3d-check": "node --import tsx scripts/widget-strict-csp-check.mjs --verify"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.7.5",

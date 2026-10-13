@@ -81,6 +81,15 @@ test('real SDK negotiates 2025-11-25 and discovers tools, catalog resource and d
     const preview = await a.call('loop_preview_design', { name: '对话内预览', config: createDefaultConfig('hero') });
     assert.equal(preview.data.quote.total, quoteConfig(createDefaultConfig('hero')).total);
     assert.equal(preview.data.catalog.currency, 'USD');
+    for (const selectionSlot of ['main', 'accent']) {
+      const options = await a.call('loop_preview_design', { name: '配件选择', config: createDefaultConfig('hero'), selectionSlot });
+      assert.equal(options.result.isError, undefined);
+      assert.equal(options.data.selectionSlot, selectionSlot);
+      assert.deepEqual(options.data.config, createDefaultConfig('hero'));
+    }
+    const invalidSlot = await a.call('loop_preview_design', { name: '无效位置', config: createDefaultConfig('hero'), selectionSlot: 'left-bead' });
+    assert.equal(invalidSlot.result.isError, true);
+    assert.equal(invalidSlot.data.status, 400);
     assert.deepEqual((await a.web('/api/designs')).data, []);
     const resource = await a.client.readResource({ uri: 'loop://catalog' });
     assert.equal(JSON.parse((resource.contents[0] as { text: string }).text).parts.length, catalog.data.catalog.parts.length);

@@ -59,6 +59,12 @@ export function pendantOffset(part: Part | undefined, spec: StrandSpec) {
   return -spec.length - .035 - partAttachmentPoint(part)[1] * spec.scale;
 }
 
+// Both preview modes place the model's hanging eye at the same chain endpoint.
+export function pendantPosition(part: Part | undefined, spec: StrandSpec): XYZ {
+  const [x, , z] = partAttachmentPoint(part);
+  return [-x * spec.scale, pendantOffset(part, spec), -z * spec.scale];
+}
+
 export const BAG_OFFSET: XYZ = [-.35, 0, -.36];
 export const BAG_CHARM_SCALE = .52;
 export const MOUNT_LINK = { radius: .06, wire: .012 };
