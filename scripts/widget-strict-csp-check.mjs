@@ -39,7 +39,7 @@ try {
  const frame = await (await page.locator('#widget').elementHandle()).contentFrame();
  await frame.waitForFunction(() => ['failed','ready'].includes(document.querySelector('.preview')?.dataset.renderState), { timeout: 30000 });
  await page.waitForTimeout(3000);
- const status = await frame.evaluate(() => ({ canvas: !!document.querySelector('canvas'), fallback: document.querySelector('.preview-note')?.textContent, price: document.querySelector('.price')?.textContent, csp: document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content }));
+ const status = await frame.evaluate(() => ({ canvas: !!document.querySelector('canvas'), fallback: document.querySelector('.preview[data-render-state="failed"] .preview-note')?.textContent, price: document.querySelector('.price')?.textContent, csp: document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content }));
  await page.locator('#widget').screenshot({ path: 'tmp/strict-csp-widget.png' });
  if (process.argv.includes('--verify')) {
    assert.equal(status.canvas, true); assert.equal(status.fallback, undefined); assert.match(status.price, /\$9/);

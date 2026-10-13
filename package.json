@@ -13,7 +13,9 @@
     "build:mcp-ui": "node scripts/build-mcp-assets.mjs && vite build --config vite.mcp.config.ts",
     "chatgpt:connect": "node scripts/chatgpt-connect.mjs",
     "chatgpt:ui-check": "node --import tsx scripts/chatgpt-browser-check.mjs",
-    "chatgpt:3d-check": "node --import tsx scripts/widget-strict-csp-check.mjs --verify"
+    "chatgpt:3d-check": "node --import tsx scripts/widget-strict-csp-check.mjs --verify",
+    "chatgpt:experience-check": "node --import tsx scripts/chatgpt-experience-check.mjs",
+    "mcp:desktop-check": "node --import tsx scripts/mcp-desktop-check.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.7.5",

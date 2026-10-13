@@ -88,7 +88,7 @@ Regular studio REST API ---> same studio service and storage
 | `loop_confirm_test_order` | `confirmationToken`, `confirmed: true` | Create one test order; the same token is idempotent |
 | `loop_list_orders` | optional `offset`, `limit` | Retrieve this guest's test orders and stored prices |
 
-The server also provides the MCP Apps UI resource `ui://loop/design-v1.html`, the JSON resource `loop://catalog` and the prompt `design-bag-charm` with an `idea` argument. Tool schemas reject unknown top-level fields; successful results include text and structured content. Business failures use MCP `isError` results; protocol/authentication failures use protocol errors or HTTP status codes.
+The server also provides the MCP Apps UI resource `ui://loop/design-v2.html` (with a legacy v1 URI alias), the JSON resource `loop://catalog` and the prompt `design-bag-charm` with an `idea` argument. A renderer-only `loop_get_preview_asset` tool reads a fixed whitelist of public product assets; binary data stays in `_meta`, outside model-visible content. Splitting assets keeps the initial UI and individual messages below the default 10 MiB stdio limit. Tool schemas reject unknown top-level fields; successful results include text and structured content. Business failures use MCP `isError` results; protocol/authentication failures use protocol errors or HTTP status codes.
 
 Names must be 1–50 characters. List tools default to 20 records and allow up to 50 per call. Use `offset` to retrieve more. AI conversations accept up to 20 messages and 20,000 characters total; the demo retains a bounded recent conversation. Chat transcripts are in-memory only. Saved designs and confirmed orders survive reloads through existing storage.
 

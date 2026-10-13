@@ -9,3 +9,4 @@ dist-mcp/
 tmp/
 *.log
 /src/chatgpt/inlineAssets.generated.ts
+/src/chatgpt/partImages.generated.ts

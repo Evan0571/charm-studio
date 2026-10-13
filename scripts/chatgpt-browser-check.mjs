@@ -50,7 +50,7 @@ try {
   assert.doesNotMatch(await card.locator('.details').innerText(), /CNY|¥/);
   // 3D loads automatically, without a View 3D click.
   await card.locator('canvas').waitFor();
-  assert.equal(await card.getByRole('button', { name: 'View 3D' }).isEnabled(), false);
+  await card.getByRole('button', { name: 'Reset view', exact: true }).waitFor();
   await page.evaluate(() => window.loopHarness.chooseSlot('main'));
   await card.getByRole('region', { name: 'Choose a part · Main charm' }).waitFor();
   assert.equal(await card.locator('.part-options button').count(), 9);
@@ -64,7 +64,7 @@ try {
   await page.screenshot({ path: 'tmp/chatgpt-widget-picker-desktop.png', fullPage: true });
   assert.equal(await card.locator('.part-options button').count(), 15);
   assert.equal(await card.locator('.part-options button').first().getAttribute('aria-label'), 'Soft glow pearl');
-  assert.equal(await card.locator('.part-options').getByRole('button', { name: 'Soft glow pearl', exact: true }).locator('svg circle[r="30"]').count(), 1);
+  assert.equal(await card.locator('.part-options').getByRole('button', { name: 'Soft glow pearl', exact: true }).locator('img').count(), 1);
   await card.locator('.part-options').getByRole('button', { name: 'Warm wood bead', exact: true }).click();
   await page.waitForFunction(() => window.loopHarness.trace.at(-1)?.structuredContent?.config.slots.accent === 'wood');
   assert.match(await card.locator('.price').innerText(), /\$10/);
@@ -82,13 +82,13 @@ try {
   await card.getByText('Unlock this slot before replacing its part.').waitFor();
   assert.equal(await card.locator('.part-options button:not(:disabled)').count(), 0);
   await card.getByRole('button', { name: 'Save design', exact: true }).click();
-  await card.getByText('Design saved to your LOOP studio.').waitFor();
+  await card.getByText('Design saved to this conversation’s collection.').waitFor();
   assert.equal((await records('/api/designs')).length, 1);
   await page.evaluate(() => window.loopHarness.revise());
   await card.getByRole('heading', { name: '银色版 · 保留主挂饰' }).waitFor();
   await card.getByRole('button', { name: 'Unlock Main charm' }).waitFor();
   await card.getByRole('button', { name: 'Save changes', exact: true }).click();
-  await card.getByText('Design saved to your LOOP studio.').waitFor();
+  await card.getByText('Design saved to this conversation’s collection.').waitFor();
   const saved = await records('/api/designs');
   assert.equal(saved.length, 1); assert.equal(saved[0].config.metalTone, 'silver'); assert.deepEqual(saved[0].config.lockedSlots, ['main']);
   assert.equal(saved[0].config.slots.main, 'shell'); assert.equal(saved[0].config.slots.accent, 'wood');
@@ -100,7 +100,7 @@ try {
   assert.deepEqual(await records('/api/orders'), []);
   await card.getByRole('button', { name: 'View test order' }).click();
   await card.getByRole('button', { name: 'Create test order' }).click();
-  await card.getByText('Test order confirmed. No payment or shipping.').waitFor();
+  await card.getByText('Test order confirmed. No payment or shipping.').first().waitFor();
   assert.equal((await records('/api/orders')).length, 1);
   assert.equal((await records('/api/orders'))[0].quote.currency, 'USD');
   await card.locator('canvas').waitFor();

@@ -96,6 +96,8 @@ Client ID 和 Client Secret 留空是因为服务器支持动态客户端注册�
 
 发送「主挂饰还能换成什么？」时，助手应调用 `loop_preview_design`，保留当前完整配置并传入 `selectionSlot: "main"`；询问辅助挂饰则传入 `selectionSlot: "accent"`（上述 ID 用于 hero 样式，其他样式用其目录中的 slot ID）。卡片展开配件插画、名称、材质和单件价格，点击后更新搭配、总价和模型上下文。也可以直接点击卡片里的 Change / 更换打开选择器。锁定位置须先解锁；合法的可选位置可以留空。选择配件不会自动保存或创建订单。
 
+卡片可以直接点选 3D 配件、搜索替换项、改名和撤销上一步。选择器使用与网站一致的模型缩略图，并显示替换后的搭配总价；保存后显示已保存状态，进一步编辑会显示未保存修改。报价过期时先刷新，再重新确认。
+
 在卡片里锁定一个配件，再发送：
 
 > 五金换成银色，保留我刚才锁定的配件，其他配件不变。展示更新后的预览，先不保存或下单。
@@ -151,7 +153,7 @@ pnpm chatgpt:connect
 | 授权请求过期 | 授权页面有效期 5 分钟；回 ChatGPT 发起新授权，不反复提交旧表单 |
 | `/mcp` 打开 401 | 未授权的协议请求是预期；不要改成 No authentication 规避 OAuth |
 | OAuth 提示 resource / audience 不匹配 | 检查是否混用了旧域名、漏掉 `/mcp`，或固定部署代理 Host 不正确 |
-| 连接后没工具 / 卡片 | 刷新工具列表，确认 10 个工具和 `loop_preview_design`；新对话明确选择 LOOP；检查构建和 UI 资源 |
+| 连接后没工具 / 卡片 | 刷新工具列表，确认 10 个设计工具及卡片专用的素材工具；新对话明确选择 LOOP；检查构建和 v2 UI 资源 |
 | 有卡片，3D 加载失败 | 检查同一 HTTPS 域名 `/assets/` 可访问、CORS / CSP 和 WebGL；卡片可回退到 SVG |
 | `loop_suggest_design` 提示不可用 | 专用入口有意关闭；让 ChatGPT 读目录并调用 `loop_preview_design` |
 | 保存后另一个域名看不到 | 访客 Cookie 和域名不同；先按第 6 节确认身份，不要清库 |
@@ -185,9 +187,9 @@ node --import tsx server/chatgpt.ts
 
 ## 10. 实现与验证记录
 
-- MCP 协议：2025-11-25，官方 SDK，10 个工具；英文协议说明见 [MCP.md](MCP.md)。
-- UI 资源：`ui://loop/design-v1.html`，`text/html;profile=mcp-app`，官方 MCP Apps bridge。
-- UI 工具调用经宿主转发，iframe 不持有 OAuth Token；3D 资产来自声明的服务端 origin。
+- MCP 协议：2025-11-25，官方 SDK，10 个设计工具及 1 个仅供卡片调用的素材工具；英文协议说明见 [MCP.md](MCP.md)。
+- UI 资源：`ui://loop/design-v2.html`，`text/html;profile=mcp-app`，官方 MCP Apps bridge；v1 URI 仍可读取。
+- UI 工具调用经宿主转发，iframe 不持有 OAuth Token；3D 资产通过仅供卡片调用的 `loop_get_preview_asset` 读取，固定文件白名单与单条消息大小限制。选择器缩略图内嵌，素材不依赖外部 fetch。
 - OAuth：DCR、显式访客授权、S256 PKCE、一次性 code、1 小时 access token、轮换 refresh token、30 天 grant、撤销。
 - 真实 Chrome 回归覆盖表单 Origin 和跨站 303 回调；授权页 CSP 只额外允许已登记客户端的 callback origin。
 - 2026-10-08 作者账号实测：OAuth 安装、目录、此前人民币版本的 ¥96 樱桃 / 木珠 / 珍珠卡片、3D / 挂包、锁定中央樱桃后对话改银色。该账号测试未保存或下单；当前美元版本还需在目标账号重新验收。
