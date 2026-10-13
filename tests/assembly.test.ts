@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cordLeadPoints, getStrands, LEATHER_LOOP, MAIN_RING, TRANSFER_RING } from '../src/three/assemblyLayout';
-import { createLeatherBandGeometry } from '../src/three/connectorGeometry';
+import { cordLeadPoints, getStrands, LEATHER_LOOP, MAIN_RING, TRANSFER_RING, partAttachmentPoint, pendantPosition } from '../src/three/assemblyLayout';
+import { catalog } from '../shared/catalog';
+import { createLeatherBandGeometry, leatherBandEdgePaths, leatherBandStitchPaths } from '../src/three/connectorGeometry';
 import { Raycaster, Mesh, MeshBasicMaterial, DoubleSide, Vector3 } from 'three';
 
 test('both hero chains start on their supporting loop for either connector', () => {
@@ -20,6 +21,19 @@ test('both hero chains start on their supporting loop for either connector', () 
 test('all three braided cords meet their fixed leads in every axis', () => {
   for (const strand of getStrands({templateId:'cord',connectorId:'ring'})) {
     assert.deepEqual(cordLeadPoints(strand.anchor).at(-1),strand.anchor);
+  }
+});
+
+test('static previews keep every pendant eye attached at full size and on a bag', () => {
+  for (const templateId of ['cord', 'chain', 'hero'] as const) {
+    for (const spec of getStrands({templateId, connectorId:'ring'})) {
+      for (const part of catalog.parts) for (const assemblyScale of [1, .52]) {
+        const eye = new Vector3(...partAttachmentPoint(part)).multiplyScalar(spec.scale);
+        eye.add(new Vector3(...pendantPosition(part, spec))).multiplyScalar(assemblyScale);
+        const expected = new Vector3(0, -spec.length - .035, 0).multiplyScalar(assemblyScale);
+        assert.ok(eye.distanceTo(expected) < 1e-8, `${templateId}/${part.id}: hanging eye misses the terminal ring`);
+      }
+    }
   }
 });
 
@@ -48,4 +62,19 @@ test('all metal-chain pivots follow the main ring lower arc', () => {
     const [x, y] = strand.anchor;
     assert.ok(Math.abs(Math.hypot(x, y - MAIN_RING.centerY) - MAIN_RING.radius) < 1e-8);
   }
+});
+
+test('leather strap edge paint and saddle stitches stay on the tapered faces and upper fold', () => {
+  const geometry = createLeatherBandGeometry(), material = new MeshBasicMaterial({side: DoubleSide});
+  const mesh = new Mesh(geometry, material), ray = new Raycaster();
+  try {
+    for (const path of [...leatherBandEdgePaths(), ...leatherBandStitchPaths()]) for (const point of path) {
+      const face = Math.sign(point.z);
+      ray.set(new Vector3(point.x, point.y, face), new Vector3(0, 0, -face));
+      const hit = ray.intersectObject(mesh)[0];
+      assert.ok(hit, `detail floats outside the strap at ${point.x}, ${point.y}`);
+      const gap = face * (point.z - hit.point.z);
+      assert.ok(gap > -.002 && gap < .0025, `detail stays against the leather, gap=${gap}`);
+    }
+  } finally { geometry.dispose(); material.dispose(); }
 });

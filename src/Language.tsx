@@ -21,7 +21,9 @@ export function LanguageProvider({ children, title = 'LOOP · 你的随身小个
   const [language, setLanguage] = useState<Language>(readLanguage);
   useEffect(() => {
     document.documentElement.lang = language;
-    document.title = translate(title, language);
+    document.title = title === 'LOOP · 你的随身小个性'
+      ? (language === 'en' ? 'LOOP · Your bag charm atelier' : 'LOOP · 你的包挂创作工作室')
+      : translate(title, language);
     try { localStorage.setItem(LANGUAGE_STORAGE_KEY, language); } catch { /* Language switching also works when storage is unavailable. */ }
   }, [language, title]);
   useEffect(() => {

@@ -1,12 +1,12 @@
 import { useLanguage, LanguageSwitcher } from './Language';
 import { Suspense, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import { localizeCatalog } from '../shared/localization';
 import { catalog as rawCatalog, createDefaultConfig } from '../shared/catalog';
 import { PartModel } from './three/parts';
 import CharmScene from './CharmScene';
+import { ProductLighting } from './three/ProductLighting';
 
 // Asset authoring tool: catalog images are rendered from the very same meshes
 // and material maps used in the interactive configurator.
@@ -64,13 +64,8 @@ export default function AssetStudio() {
     <div style={{ width: 320, height: 320, borderRadius: 24, overflow: 'hidden', background: '#f8f5ef' }}>
       {templates ? <CharmScene config={createDefaultConfig(template.id)} catalog={catalog} bag={false} bagStyle="tote" motion={false} onCapture={captureTemplate} /> : <Canvas dpr={2} shadows camera={{ position: [0.9, 0.5, 3.25], fov: 25 }} gl={{ antialias: true, alpha: false, toneMapping: THREE.ACESFilmicToneMapping }}>
         <color attach="background" args={['#f8f5ef']} />
-        <ambientLight intensity={0.7} />
-        <directionalLight position={[3, 5, 5]} intensity={2.1} castShadow shadow-mapSize={[1024, 1024]} />
         <Suspense fallback={null}>
-          <Environment files="/assets/environment/studio-small-09-1k.hdr" environmentIntensity={0.9} resolution={256}>
-            <Lightformer position={[0, 0, 5]} scale={[8, 8, 1]} intensity={1.6} />
-            <Lightformer position={[-4, 3, 2]} scale={[2, 5, 1]} intensity={2.5} />
-          </Environment>
+          <ProductLighting/>
           <group position={[0, -.01, 0]} rotation={[0, -.18, 0]}><PartModel part={part} /></group>
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.53, 0]} receiveShadow><planeGeometry args={[200, 200]} /><shadowMaterial color="#776756" opacity={.13} /></mesh>
           {running && <Capture id={part.id} onCapture={capture} />}

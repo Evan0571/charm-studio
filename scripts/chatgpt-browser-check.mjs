@@ -21,6 +21,7 @@ const base = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: 900, height: 1100 } });
 const errors = [], methods = [];
+const desktopOnly = process.argv.includes('--desktop-only');
 page.on('pageerror', error => errors.push(error.message));
 page.on('request', req => { if (req.url() === base + '/mcp' && req.method() === 'POST') { const rpc = req.postDataJSON(); if (rpc.method === 'tools/call') methods.push(rpc.params.name); } });
 const records = async path => (await (await page.request.get(base + path)).json());
@@ -113,16 +114,18 @@ try {
   assert.equal(await card.getByText('3D is unavailable. Showing the design illustration.').count(), 0);
   await card.getByRole('button', { name: 'Change Accent', exact: true }).click();
   await card.getByRole('region', { name: 'Choose a part · Accent' }).waitFor();
-  await page.setViewportSize({ width: 390, height: 900 });
-  await page.waitForFunction(() => document.querySelector('#widget').clientWidth <= 390);
-  await page.screenshot({ path: 'tmp/chatgpt-widget-mobile.png', fullPage: true });
-  const frame = await (await page.locator('#widget').elementHandle()).contentFrame();
-  await frame.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth && document.body.scrollWidth <= 390);
-  assert.ok(await frame.evaluate(() => innerWidth <= 390));
-  assert.equal(await frame.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  if (!desktopOnly) {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.waitForFunction(() => document.querySelector('#widget').clientWidth <= 390);
+    await page.screenshot({ path: 'tmp/chatgpt-widget-mobile.png', fullPage: true });
+    const frame = await (await page.locator('#widget').elementHandle()).contentFrame();
+    await frame.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth && document.body.scrollWidth <= 390);
+    assert.ok(await frame.evaluate(() => innerWidth <= 390));
+    assert.equal(await frame.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  }
   assert.deepEqual(errors, []);
   for (const tool of ['loop_preview_design', 'loop_quote_design', 'loop_save_design', 'loop_prepare_test_order', 'loop_confirm_test_order']) assert.ok(methods.includes(tool));
-  console.log(JSON.stringify({ result: 'PASS', host: 'official MCP Apps AppBridge', storage: 'temporary SQLite', cases: ['browser OAuth consent + PKCE', 'sandbox + CSP', 'default 3D', 'incoming main-part selector', 'illustrated compatible choices', 'main/accent replacement + empty accent', 'quote and model context updates', 'no implicit save/order', 'locked picker', 'incoming revision', 'update same draft', 'cancel vs confirmed test order', '3D + bag assets', 'mobile picker width'], errors, screenshots: ['tmp/chatgpt-widget-desktop.png', 'tmp/chatgpt-widget-picker-desktop.png', 'tmp/chatgpt-widget-mobile.png'] }, null, 2));
+  console.log(JSON.stringify({ result: 'PASS', host: 'official MCP Apps AppBridge', storage: 'temporary SQLite', cases: ['browser OAuth consent + PKCE', 'sandbox + CSP', 'default 3D', 'incoming main-part selector', 'illustrated compatible choices', 'main/accent replacement + empty accent', 'quote and model context updates', 'no implicit save/order', 'locked picker', 'incoming revision', 'update same draft', 'cancel vs confirmed test order', '3D + bag assets', ...desktopOnly ? [] : ['mobile picker width']], errors, screenshots: ['tmp/chatgpt-widget-desktop.png', 'tmp/chatgpt-widget-picker-desktop.png', ...desktopOnly ? [] : ['tmp/chatgpt-widget-mobile.png']] }, null, 2));
 } finally {
   await browser.close(); server.closeAllConnections();
   await new Promise(resolve => server.close(resolve)); app.locals.closeMcp(); storage.close();

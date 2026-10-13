@@ -4,6 +4,9 @@ const files = [
   ['materials/brown-leather-color.jpg', 'image/jpeg'],
   ['materials/brown-leather-normal.jpg', 'image/jpeg'],
   ['materials/brown-leather-roughness.jpg', 'image/jpeg'],
+  ['materials/pebbled-leather-color.webp', 'image/webp'],
+  ['materials/pebbled-leather-normal.webp', 'image/webp'],
+  ['materials/pebbled-leather-roughness.webp', 'image/webp'],
   ['models/atelier-tote.glb', 'model/gltf-binary'],
   ['models/atelier-shoulder.glb', 'model/gltf-binary'],
 ];
