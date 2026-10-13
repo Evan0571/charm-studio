@@ -1,0 +1,28 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/index.mjs": {
+      "maxDuration": 60,
+      "includeFiles": "{dist-mcp/**,public/assets/**}",
+      "excludeFiles": "{.data/**,.env,.env.*,tmp/**,docs/**,tests/**}"
+    }
+  },
+  "headers": [
+    { "source": "/assets/:path*", "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }] }
+  ],
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index" },
+    { "source": "/mcp/:path*", "destination": "/api/index" },
+    { "source": "/.well-known/:path*", "destination": "/api/index" },
+    { "source": "/authorize", "destination": "/api/index" },
+    { "source": "/token", "destination": "/api/index" },
+    { "source": "/register", "destination": "/api/index" },
+    { "source": "/revoke", "destination": "/api/index" },
+    { "source": "/oauth/:path*", "destination": "/api/index" },
+    { "source": "/((?!api(?:/|$)|mcp(?:/|$)|\\.well-known(?:/|$)|authorize(?:/|$)|token(?:/|$)|register(?:/|$)|revoke(?:/|$)|oauth(?:/|$)|assets(?:/|$)).*)", "destination": "/index.html" }
+  ]
+}

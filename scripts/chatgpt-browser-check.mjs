@@ -11,7 +11,7 @@ import { SqliteStorage } from '../server/storage.ts';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const storage = new SqliteStorage(':memory:');
-const app = createApp(storage, { configured: () => false, reply: async () => { throw new Error('No model calls in UI verification'); } });
+const app = createApp(storage, { configured: () => false, reply: async () => { throw new Error('No model calls in UI verification'); } }, { streamResponses: process.env.MCP_HTTP_STREAMING === 'true' });
 app.use('/assets', (_req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); next(); }, express.static('public/assets'));
 await build({ configFile: false, logLevel: 'silent', publicDir: false, build: { target: 'es2022', outDir: 'tmp/chatgpt-host', minify: false, lib: { entry: 'scripts/chatgpt-harness.ts', formats: ['es'], fileName: () => 'host.js' } } });
 app.use(express.static('tmp/chatgpt-host'));

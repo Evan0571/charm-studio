@@ -15,7 +15,7 @@ export function createMcpHttp(storage: Storage, service: StudioService, options:
   if (publicUrl && (publicUrl.protocol !== 'https:' || publicUrl.username || publicUrl.password || publicUrl.search || publicUrl.hash || publicUrl.pathname !== '/mcp')) throw new Error('MCP_PUBLIC_URL must be an HTTPS URL ending in /mcp, without credentials, query or fragment.');
   const hostGuard = hostHeaderValidation(['localhost', '127.0.0.1', '[::1]', ...(publicUrl ? [publicUrl.hostname] : [])]);
   const audience = (req: Request) => publicUrl?.href ?? `${req.protocol}://${req.get('host')}/mcp`;
-  const oauthStore = new OAuthStore(options.oauthStorePath, options.now);
+  const oauthStore = options.oauthStore ?? new OAuthStore(options.oauthStorePath, options.now);
   const oauthServers = new Map<string, ReturnType<typeof createLoopOAuth>>();
   const oauthFor = (req: Request) => {
     const url = audience(req);
@@ -57,7 +57,10 @@ export function createMcpHttp(storage: Storage, service: StudioService, options:
   router.use(express.json({ limit: '48kb' }));
   router.post('/', async (req, res) => {
     const server = createLoopMcpServer({ storage, service, tokens, owner: res.locals.mcpOwner, audience: audience(req) });
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    // On Vercel, POST-scoped SSE streams bypass the buffered 4.5 MB response
+    // limit for inline widget HTML and base64 models. No persistent session,
+    // standalone GET stream or in-memory event broker is needed.
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: !options.streamResponses });
     res.once('close', () => { void server.close().catch(() => {}); });
     try {
       await server.connect(transport);
@@ -67,7 +70,7 @@ export function createMcpHttp(storage: Storage, service: StudioService, options:
       await server.close().catch(() => {});
     }
   });
-  // This stateless, JSON-response server has no standalone SSE stream or sessions.
+  // Both response modes are stateless and have no standalone GET stream.
   router.all('/', (_req, res) => { res.setHeader('Allow', 'POST'); res.status(405).json({ jsonrpc: '2.0', error: { code: -32000, message: 'Method not allowed' }, id: null }); });
   router.use((_req, res) => { res.status(404).json({ error: 'MCP endpoint not found' }); });
   const errors: ErrorRequestHandler = (error, _req, res, _next) => {
@@ -75,7 +78,7 @@ export function createMcpHttp(storage: Storage, service: StudioService, options:
   };
   router.use(errors);
   return {
-    router, oauthRouter, close: () => oauthStore.close(), guards: [hostGuard, originGuard],
+    router, oauthRouter, close: () => oauthStore.close(), checkHealth: () => oauthStore.checkHealth(), guards: [hostGuard, originGuard],
     issueAccessToken(req: Request, owner: string) { return { ...tokens.issue('access', owner, audience(req), 24 * 60 * 60_000), endpoint: audience(req), tokenType: 'Bearer' }; },
   };
 }

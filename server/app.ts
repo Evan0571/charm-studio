@@ -47,7 +47,7 @@ export function createApp(storage: Storage, stylist: StylistService = createStyl
   app.use('/api', visitor);
   app.get('/api/health', async (_req, res) => {
     try {
-      await storage.checkHealth();
+      await Promise.all([storage.checkHealth(), mcp.checkHealth()]);
       res.json({ status: 'ok', storage: storage.kind });
     } catch {
       res.status(503).json({ status: 'error', storage: storage.kind, error: '数据库暂时无法连接，请检查服务端配置。' });

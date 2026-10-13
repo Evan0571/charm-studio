@@ -9,7 +9,7 @@ import { SqliteStorage } from '../server/storage.ts';
 // runtime is supplied outside this checkout. All storage is isolated.
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const storage = new SqliteStorage(':memory:');
-const app = createApp(storage, { configured: () => false, reply: async () => { throw new Error('No model calls'); } });
+const app = createApp(storage, { configured: () => false, reply: async () => { throw new Error('No model calls'); } }, { streamResponses: process.env.MCP_HTTP_STREAMING === 'true' });
 app.use('/assets', (_req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); next(); }, express.static('public/assets'));
 await mkdir('tmp', { recursive: true });
 await build({ configFile: false, logLevel: 'silent', publicDir: false, build: { target: 'es2022', outDir: 'tmp/strict-csp-host', minify: false, lib: { entry: 'scripts/chatgpt-harness.ts', formats: ['es'], fileName: () => 'host.js' } } });

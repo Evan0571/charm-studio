@@ -1,12 +1,15 @@
 node_modules/
 dist/
 dist-mcp/
+dist-server/
 .env
 .env.*
 !.env.example
 .data/
 .DS_Store
 tmp/
+.vercel/
+supabase/.temp/
 *.log
 /src/chatgpt/inlineAssets.generated.ts
 /src/chatgpt/partImages.generated.ts

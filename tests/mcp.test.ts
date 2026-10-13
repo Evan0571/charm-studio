@@ -101,6 +101,33 @@ test('real SDK negotiates 2025-11-25 and discovers tools, catalog resource and d
   } finally { await f.close(); }
 });
 
+test('Vercel streaming delivers large bag assets, then completes save and checkout', async () => {
+  const f = await fixture({ streamResponses: true });
+  try {
+    const a = await f.connect();
+    const response = await fetch(`${f.base}/mcp`, { method: 'POST', headers: { Authorization: `Bearer ${a.token}`, 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'loop_get_preview_asset', arguments: { path: '/assets/models/atelier-tote.glb' } } }) });
+    assert.match(response.headers.get('content-type')!, /text\/event-stream/);
+    assert.equal(response.headers.has('content-length'), false, 'Large resources must use a streamed response');
+    const wire = await response.text();
+    assert.ok(Buffer.byteLength(wire) > 4.5 * 1024 * 1024, 'The check must exercise a response above the buffered Vercel limit');
+    const rpc = JSON.parse(wire.split('\n').find(line => line.startsWith('data: '))!.slice(6));
+    assert.equal(rpc.result.structuredContent.path, '/assets/models/atelier-tote.glb');
+    assert.equal(Buffer.from(rpc.result._meta.asset.base64, 'base64').subarray(0, 4).toString(), 'glTF');
+    const bag = await a.client.callTool({ name: 'loop_get_preview_asset', arguments: { path: '/assets/models/atelier-tote.glb' } }) as CallToolResult;
+    assert.equal(bag.isError, undefined);
+    assert.equal(Buffer.from((bag._meta?.asset as { base64: string }).base64, 'base64').subarray(0, 4).toString(), 'glTF');
+    assert.ok(Buffer.byteLength(JSON.stringify(bag)) > 4.5 * 1024 * 1024);
+    const config = createDefaultConfig('hero');
+    const saved = await a.call('loop_save_design', { name: 'Streaming deployment', config });
+    assert.ok(saved.data.design.id);
+    const prepared = await a.call('loop_prepare_test_order', { designName: 'Streaming deployment', config });
+    assert.equal((await a.web('/api/orders')).data.length, 0);
+    const confirmed = await a.call('loop_confirm_test_order', { confirmationToken: prepared.data.confirmationToken, confirmed: true });
+    assert.equal(confirmed.result.isError, undefined);
+    assert.equal((await a.web('/api/orders')).data.length, 1);
+  } finally { await f.close(); }
+});
+
 test('browser and MCP share persisted designs while other identities cannot read or overwrite them', async () => {
   const f = await fixture();
   try {

@@ -2,9 +2,10 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ValidationError } from '../../shared/domain';
+import { SupabaseOAuthStore, type OAuthPersistence } from './oauth-store';
 
 type Envelope = { purpose: string; owner: string; audience: string; expiresAt: number; data: Record<string, unknown> };
-export interface McpOptions { secret?: string; publicUrl?: string; oauthStorePath?: string; now?: () => number; }
+export interface McpOptions { secret?: string; publicUrl?: string; oauthStorePath?: string; oauthStore?: OAuthPersistence; streamResponses?: boolean; now?: () => number; }
 
 export function createMcpTokens(secret = randomBytes(32).toString('hex'), now = Date.now) {
   if (secret.length < 32) throw new Error('MCP_TOKEN_SECRET must contain at least 32 characters.');
@@ -31,8 +32,12 @@ export function createMcpTokens(secret = randomBytes(32).toString('hex'), now = 
 export type McpTokens = ReturnType<typeof createMcpTokens>;
 
 export function mcpOptionsFromEnvironment(): McpOptions {
-  const publicUrl = process.env.MCP_PUBLIC_URL?.trim() || undefined;
+  const vercel = process.env.VERCEL === '1';
+  const vercelDomain = process.env.VERCEL_ENV === 'production' ? process.env.VERCEL_PROJECT_PRODUCTION_URL : process.env.VERCEL_URL;
+  const publicUrl = process.env.MCP_PUBLIC_URL?.trim() || (vercel && vercelDomain ? `https://${vercelDomain}/mcp` : undefined);
   let secret = process.env.MCP_TOKEN_SECRET?.trim();
+  if (vercel && !publicUrl) throw new Error('Set MCP_PUBLIC_URL to the fixed HTTPS endpoint before running on Vercel.');
+  if (vercel && (!process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY)) throw new Error('Vercel requires SUPABASE_URL and SUPABASE_SECRET_KEY; local SQLite cannot persist there.');
   if (publicUrl && !secret) throw new Error('Set MCP_TOKEN_SECRET when using MCP_PUBLIC_URL.');
   if (!secret) {
     const path = resolve('.data/mcp-token-secret');
@@ -41,5 +46,13 @@ export function mcpOptionsFromEnvironment(): McpOptions {
     catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
     secret = readFileSync(path, 'utf8').trim();
   }
-  return { secret, publicUrl, oauthStorePath: resolve('.data/mcp-oauth.sqlite') };
+  const backend = process.env.MCP_OAUTH_STORAGE?.trim() || (vercel ? 'supabase' : 'sqlite');
+  if (!['sqlite', 'supabase'].includes(backend) || (vercel && backend !== 'supabase')) throw new Error('MCP_OAUTH_STORAGE must be supabase on Vercel, or sqlite for local development.');
+  const streamResponses = vercel || process.env.MCP_HTTP_STREAMING === 'true';
+  if (backend === 'supabase') {
+    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;
+    if (!url || !key || !publicUrl) throw new Error('Shared OAuth storage requires Supabase credentials and MCP_PUBLIC_URL.');
+    return { secret, publicUrl, streamResponses, oauthStore: new SupabaseOAuthStore(url, key, publicUrl) };
+  }
+  return { secret, publicUrl, streamResponses, oauthStorePath: resolve('.data/mcp-oauth.sqlite') };
 }

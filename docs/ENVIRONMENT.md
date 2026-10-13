@@ -23,6 +23,9 @@
 | `CLOUDFLARED_BIN` | PATH 中 `cloudflared` | 可设绝对路径；未设置时也查找 `.data/bin/cloudflared`（Windows 为 `cloudflared.exe`） |
 | `MCP_PUBLIC_URL` | 普通本地模式不设置 | 固定部署时的完整 `https://域名/mcp`；不能含用户名、密码、query 或 fragment |
 | `MCP_TOKEN_SECRET` | 普通本地自动生成 | 固定部署时与公网 URL 配套，至少 32 个随机字符；不能使用示例占位文本 |
+| `MCP_OAUTH_STORAGE` | 本地 `sqlite`，Vercel `supabase` | 显式 `supabase` 时须配置 Supabase 与固定 MCP 地址；Vercel 不允许 SQLite 授权存储 |
+| `MCP_HTTP_STREAMING` | 本地关闭，Vercel 自动开启 | 本地设 `true` 可检查大资源流式传输；Vercel 始终使用流式响应 |
+| `ENABLE_EXPERIMENTAL_COREPACK` | Vercel 设 `1` | 使用 `package.json` 固定的 pnpm 版本，详见 [Vercel 部署](VERCEL_DEPLOY.md) |
 | `COOKIE_SECURE` | 未设置 | HTTPS 部署设 `true`；普通 HTTP 本地测试保持未设置；helper 仅对子进程设为 true |
 | `NODE_ENV` | 启动命令管理 | `pnpm start` / ChatGPT helper 使用 production；不要为开发路径全局固定为 production |
 | `PLAYWRIGHT_MODULE` | 可选测试专用 | 浏览器回归所用 Playwright ESM 路径；只做常规部署无需设置 |
@@ -102,6 +105,8 @@ SUPABASE_SECRET_KEY=在此填入该项目的服务端密钥
 `.data/chatgpt-connection.json` 只记录当前连接地址和进程信息，不是插件安装文件；里面的旧地址不能保证还有效。不要把 `.data` 放进仓库。
 
 固定域名部署使用自己生成的稳定 `MCP_TOKEN_SECRET`，保存为服务端 secret。临时连接由 helper 自动处理，不需要用户手动生成或提供 OAuth Client ID / Client Secret。
+
+Vercel 使用 Supabase 保存设计、订单和共享 OAuth 记录，不使用本地 `.data`。先按 [VERCEL_DEPLOY.md](VERCEL_DEPLOY.md) 执行授权表迁移，再配置服务端环境变量。上表中的本地 OAuth 文件仅适用于 SQLite 模式。
 
 ## 不泄密的核查
 

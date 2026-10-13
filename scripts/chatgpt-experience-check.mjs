@@ -10,7 +10,7 @@ import { SqliteStorage } from '../server/storage.ts';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 let serverNow = Date.now();
 const storage = new SqliteStorage(':memory:');
-const app = createApp(storage, {configured:()=>false, reply:async()=>{throw new Error('No model API in this check');}}, {now:()=>serverNow});
+const app = createApp(storage, {configured:()=>false, reply:async()=>{throw new Error('No model API in this check');}}, {now:()=>serverNow, streamResponses:process.env.MCP_HTTP_STREAMING==='true'});
 await mkdir('tmp', {recursive:true});
 await build({configFile:false,logLevel:'silent',publicDir:false,build:{target:'es2022',outDir:'tmp/experience-check-host',minify:false,lib:{entry:'scripts/chatgpt-harness.ts',formats:['es'],fileName:()=> 'host.js'}}});
 app.use(express.static('tmp/experience-check-host'));

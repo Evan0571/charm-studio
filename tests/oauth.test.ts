@@ -11,6 +11,10 @@ import { join } from 'node:path';
 import { createApp } from '../server/app';
 import { SqliteStorage } from '../server/storage';
 import { OAuthStore } from '../server/mcp/oauth-store';
+import type { OAuthPersistence } from '../server/mcp/oauth-store';
+import { createLoopOAuth } from '../server/mcp/oauth';
+import { createMcpTokens } from '../server/mcp/auth';
+import { hash } from '../server/studio-service';
 import { createDefaultConfig } from '../shared/catalog';
 
 async function fixture() {
@@ -119,4 +123,36 @@ test('OAuth registered clients and grants persist across store restart', () => {
     assert.deepEqual(second.get('client', 'registered-client'), { client_id: 'registered-client' });
     assert.deepEqual(second.get('grant', 'grant-id'), { owner: 'guest-owner' }); second.close();
   } finally { rmSync(folder, { recursive: true, force: true }); }
+});
+
+test('independent OAuth providers sharing asynchronous persistence accept a code and refresh token only once', async () => {
+  const local = new OAuthStore();
+  // Yield each read to expose races that the former synchronous store hid.
+  const shared: OAuthPersistence = {
+    get: async <T>(kind: string, id: string) => { const value = local.get<T>(kind, id); await new Promise(resolve => setTimeout(resolve, 5)); return value; },
+    put: async (...args) => local.put(...args), remove: async (...args) => local.remove(...args),
+    consume: async <T>(kind: string, id: string) => local.consume<T>(kind, id),
+    checkHealth: () => local.checkHealth(), close: () => {},
+  };
+  const audience = 'https://loop.example/mcp', tokens = createMcpTokens('shared-instance-secret-at-least-32-characters');
+  const a = createLoopOAuth(audience, tokens, shared).provider;
+  const b = createLoopOAuth(audience, tokens, shared).provider;
+  try {
+    const client = (await a.clientsStore.registerClient!({ redirect_uris: ['https://chatgpt.com/callback'], token_endpoint_auth_method: 'none' }))!;
+    assert.equal((await b.clientsStore.getClient(client.client_id))?.client_id, client.client_id);
+    const code = 'single-use-code', grantId = 'shared-grant';
+    local.put('code', hash(code), { owner: 'a'.repeat(64), clientId: client.client_id, grantId, params: { resource: audience, redirectUri: 'https://chatgpt.com/callback', codeChallenge: 'verified-by-sdk' } }, 60_000);
+    const exchanges = await Promise.allSettled([a, b].map(provider => provider.exchangeAuthorizationCode(client, code, 'sdk-verified', 'https://chatgpt.com/callback', new URL(audience))));
+    assert.equal(exchanges.filter(value => value.status === 'fulfilled').length, 1);
+    const credentials = exchanges.find(value => value.status === 'fulfilled')!;
+    assert.equal(credentials.status, 'fulfilled');
+    if (credentials.status !== 'fulfilled') throw new Error('Missing credentials');
+    assert.equal((await b.verifyAccessToken(credentials.value.access_token)).extra?.owner, 'a'.repeat(64));
+    const refreshes = await Promise.allSettled([a, b].map(provider => provider.exchangeRefreshToken(client, credentials.value.refresh_token!, undefined, new URL(audience))));
+    assert.equal(refreshes.filter(value => value.status === 'fulfilled').length, 1);
+    const refreshed = refreshes.find(value => value.status === 'fulfilled')!;
+    if (refreshed.status !== 'fulfilled') throw new Error('Missing refreshed credentials');
+    await a.revokeToken!(client, { token: refreshed.value.refresh_token! });
+    await assert.rejects(b.verifyAccessToken(refreshed.value.access_token));
+  } finally { local.close(); }
 });

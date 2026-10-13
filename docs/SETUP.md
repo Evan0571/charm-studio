@@ -2,6 +2,8 @@
 
 本文面向第一次拿到仓库的队友，也可交给部署 AI 执行。配置清单见 [ENVIRONMENT.md](ENVIRONMENT.md)，ChatGPT 安装见 [CHATGPT.md](CHATGPT.md)。先跑通不需要密钥的本地路径，再添加云端服务。
 
+如果要部署固定公网地址，直接按 [Vercel 部署步骤](VERCEL_DEPLOY.md) 操作；该路径需要 Supabase，不需要本机临时隧道。
+
 ## 1. 你需要准备什么
 
 | 项目 | 必需性 | 说明 |

@@ -6,6 +6,8 @@ LOOP 把「我想给这个包配一个什么样的挂件」变成可继续修改
 
 仓库：[Evan0571/charm-studio](https://github.com/Evan0571/charm-studio)，默认分支 `master`。仓库目前为私有，队友须先取得访问权限。代码链接不等于在线部署地址。
 
+**固定地址部署：[Vercel 部署步骤](docs/VERCEL_DEPLOY.md)**。本版包含同域后端路由、Supabase 共享授权存储和大资源流式传输。按文档配置数据库与环境变量后，从 `master` 部署完整网站和 LOOP 连接。
+
 ## 给第一次接手的队友
 
 建议按这个顺序使用文档：
