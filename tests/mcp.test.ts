@@ -79,7 +79,7 @@ test('real SDK negotiates 2025-11-25 and discovers tools, catalog resource and d
     assert.ok(resources.resources.some(resource => resource.uri === 'loop://catalog'));
     assert.ok(resources.resources.some(resource => resource.uri === 'ui://loop/design-v2.html'));
     assert.ok(resources.resources.some(resource => resource.uri === 'ui://loop/design-v1.html'));
-    assert.equal((tools.find(tool => tool.name === 'loop_preview_design')?._meta?.ui as { resourceUri: string }).resourceUri, 'ui://loop/design-v4.html');
+    assert.equal((tools.find(tool => tool.name === 'loop_preview_design')?._meta?.ui as { resourceUri: string }).resourceUri, 'ui://loop/design-v5.html');
     assert.equal((tools.find(tool => tool.name === 'loop_get_preview_asset')?._meta?.ui as { resourceUri?: string }).resourceUri, undefined, 'Private asset reads must not try to render another widget');
     const preview = await a.call('loop_preview_design', { name: '对话内预览', config: createDefaultConfig('hero') });
     assert.equal(preview.data.quote.total, quoteConfig(createDefaultConfig('hero')).total);

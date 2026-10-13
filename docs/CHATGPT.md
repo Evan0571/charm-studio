@@ -190,8 +190,9 @@ node --import tsx server/chatgpt.ts
 ## 10. 实现与验证记录
 
 - MCP 协议：2025-11-25，官方 SDK，10 个设计工具及 1 个仅供卡片调用的素材工具；英文协议说明见 [MCP.md](MCP.md)。
-- UI 资源：`ui://loop/design-v4.html`，`text/html;profile=mcp-app`，官方 MCP Apps bridge；v1 / v2 / v3 URI 仍可读取。
+- UI 资源：`ui://loop/design-v5.html`，`text/html;profile=mcp-app`，官方 MCP Apps bridge；v1 / v2 / v3 / v4 URI 仍可读取。
 - 对话模型保存并打开同一草稿时，卡片会重新读取持久化基准，自动核对“已保存”状态；后台核对只更新保存基准，不覆盖用户继续编辑的名称或配件。工具描述也要求保存结束后再打开预览。
+- 保存比对使用固定字段顺序，兼容 Supabase JSONB 对顶层配置及配件字段的重排，相同配置重新读取后仍显示已保存。
 - UI 工具调用经宿主转发，iframe 不持有 OAuth Token；3D 资产通过仅供卡片调用的 `loop_get_preview_asset` 读取，固定文件白名单与单条消息大小限制。选择器缩略图内嵌，素材不依赖外部 fetch。首次挂件预览只读取灯光与皮革的 7 个素材，点选挂包效果后才读取当前包模型。宿主仍在传输素材时保留加载状态，素材到齐后自动显示 3D；25 秒渲染超时从素材准备完成后开始。
 - OAuth：DCR、显式访客授权、S256 PKCE、一次性 code、1 小时 access token、轮换 refresh token、30 天 grant、撤销。
 - 真实 Chrome 回归覆盖表单 Origin 和跨站 303 回调；授权页 CSP 只额外允许已登记客户端的 callback origin。

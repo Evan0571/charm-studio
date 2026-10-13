@@ -40,6 +40,9 @@ test('renames, replacements and undo report saved state by content, independent 
   assert.equal(isSaved({...changed,config:value.config}), true);
   const reordered = {...value.config,slots:Object.fromEntries(Object.entries(value.config.slots).reverse())};
   assert.equal(designSignature(reordered,value.name), value.savedSignature);
+  const databaseConfig = {slots: reordered.slots, cordColor: reordered.cordColor, metalTone: reordered.metalTone, templateId: reordered.templateId, connectorId: reordered.connectorId, lockedSlots: reordered.lockedSlots};
+  assert.equal(designSignature(databaseConfig,value.name), value.savedSignature, 'Postgres JSONB field order must not change whether the same design is saved');
+  assert.equal(isSaved({...value, config: databaseConfig}), true);
 });
 
 test('prepared checkout shares review state with the conversation without exposing its confirmation token', () => {
