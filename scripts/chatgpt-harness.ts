@@ -10,7 +10,7 @@ await client.connect(new StreamableHTTPClientTransport(new URL(auth.endpoint), {
 const catalog = (await client.callTool({ name: 'loop_get_catalog' })).structuredContent as any;
 const args = { name: '珍珠与星光', config: catalog.examples.find((e: any) => e.config.templateId === 'hero').config };
 const result = await client.callTool({ name: 'loop_preview_design', arguments: args }) as CallToolResult;
-const resource = await client.readResource({ uri: 'ui://loop/design-v1.html' });
+const resource = await client.readResource({ uri: 'ui://loop/design-v2.html' });
 const content = resource.contents[0];
 if (!('text' in content)) throw new Error('Missing widget HTML');
 const frame = document.getElementById('widget') as HTMLIFrameElement;

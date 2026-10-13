@@ -1,6 +1,7 @@
 // Desktop-only MCP entrypoint. The desktop host owns process access; HTTP
 // clients continue to use the existing OAuth-protected /mcp endpoint.
 import { randomBytes } from 'node:crypto';
+import { access } from 'node:fs/promises';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -10,8 +11,10 @@ import { createMcpTokens, mcpOptionsFromEnvironment } from './auth';
 import { createLoopMcpServer } from './server';
 
 const origin = 'http://localhost:3000';
-const health = await fetch(`${origin}/api/health`, { signal: AbortSignal.timeout(5000) });
-if (!health.ok) throw new Error('Start the local LOOP website on port 3000 before connecting the desktop plugin.');
+// The card reads local models and textures through MCP. Desktop usage needs
+// the built resource and its database, independently of the web server.
+try { await Promise.all(['dist-mcp/loop-widget.js', 'dist-mcp/loop-widget.css'].map(file => access(resolve(file)))); }
+catch { throw new Error('Build the LOOP preview with pnpm build:mcp-ui before connecting the desktop plugin.'); }
 const ownerPath = resolve(process.env.LOOP_STDIO_OWNER_PATH || '.data/desktop-mcp-owner');
 mkdirSync(dirname(ownerPath), { recursive: true });
 try { writeFileSync(ownerPath, randomBytes(32).toString('hex'), { flag: 'wx', mode: 0o600 }); }
@@ -23,7 +26,7 @@ const service = createStudioService(storage, {
   configured: () => false,
   reply: async () => { throw new Error('Use the ChatGPT host model with loop_get_catalog and loop_preview_design.'); },
 });
-const server = createLoopMcpServer({ storage, service, owner, audience: `${origin}/mcp`, tokens: createMcpTokens(mcpOptionsFromEnvironment().secret) });
+const server = createLoopMcpServer({ storage, service, owner, audience: `${origin}/mcp`, studioUrl: null, tokens: createMcpTokens(mcpOptionsFromEnvironment().secret) });
 const transport = new StdioServerTransport();
 let closed = false;
 const close = async () => {

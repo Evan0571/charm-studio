@@ -68,7 +68,8 @@ test('real SDK negotiates 2025-11-25 and discovers tools, catalog resource and d
     assert.equal(response.headers.has('mcp-session-id'), false);
     assert.equal(a.client.getServerVersion()?.name, 'loop-charm-studio');
     const tools = (await a.client.listTools()).tools;
-    assert.equal(tools.length, 10);
+    assert.equal(tools.length, 11);
+    assert.deepEqual((tools.find(tool=>tool.name==='loop_get_preview_asset')?._meta?.ui as {visibility:string[]}).visibility,['app']);
     assert.ok(tools.every(tool => tool.inputSchema.type === 'object' && tool.inputSchema.additionalProperties === false));
     assert.equal(tools.find(tool => tool.name === 'loop_confirm_test_order')?.annotations?.readOnlyHint, false);
     const catalog = await a.call('loop_get_catalog');
@@ -76,8 +77,10 @@ test('real SDK negotiates 2025-11-25 and discovers tools, catalog resource and d
     assert.equal(catalog.data.examples.length, 3);
     const resources = await a.client.listResources();
     assert.ok(resources.resources.some(resource => resource.uri === 'loop://catalog'));
+    assert.ok(resources.resources.some(resource => resource.uri === 'ui://loop/design-v2.html'));
     assert.ok(resources.resources.some(resource => resource.uri === 'ui://loop/design-v1.html'));
-    assert.equal((tools.find(tool => tool.name === 'loop_preview_design')?._meta?.ui as { resourceUri: string }).resourceUri, 'ui://loop/design-v1.html');
+    assert.equal((tools.find(tool => tool.name === 'loop_preview_design')?._meta?.ui as { resourceUri: string }).resourceUri, 'ui://loop/design-v5.html');
+    assert.equal((tools.find(tool => tool.name === 'loop_get_preview_asset')?._meta?.ui as { resourceUri?: string }).resourceUri, undefined, 'Private asset reads must not try to render another widget');
     const preview = await a.call('loop_preview_design', { name: '对话内预览', config: createDefaultConfig('hero') });
     assert.equal(preview.data.quote.total, quoteConfig(createDefaultConfig('hero')).total);
     assert.equal(preview.data.catalog.currency, 'USD');

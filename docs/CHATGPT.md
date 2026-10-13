@@ -96,6 +96,8 @@ Client ID 和 Client Secret 留空是因为服务器支持动态客户端注册�
 
 发送「主挂饰还能换成什么？」时，助手应调用 `loop_preview_design`，保留当前完整配置并传入 `selectionSlot: "main"`；询问辅助挂饰则传入 `selectionSlot: "accent"`（上述 ID 用于 hero 样式，其他样式用其目录中的 slot ID）。卡片展开配件插画、名称、材质和单件价格，点击后更新搭配、总价和模型上下文。也可以直接点击卡片里的 Change / 更换打开选择器。锁定位置须先解锁；合法的可选位置可以留空。选择配件不会自动保存或创建订单。
 
+卡片可以直接点选 3D 配件、搜索替换项、改名和撤销上一步。选择器使用与网站一致的模型缩略图，并显示替换后的搭配总价；保存后显示已保存状态，进一步编辑会显示未保存修改。报价过期时先刷新，再重新确认。
+
 在卡片里锁定一个配件，再发送：
 
 > 五金换成银色，保留我刚才锁定的配件，其他配件不变。展示更新后的预览，先不保存或下单。
@@ -135,6 +137,8 @@ pnpm chatgpt:connect
 
 先停止上一份 helper 再重启，避免端口冲突。只改卡片时可单独 `pnpm build:mcp-ui`，但既有 ChatGPT 卡片可能缓存旧资源；在 ChatGPT 刷新插件工具 / 连接并生成新预览。不要继续把旧临时域名发给队友作为永久部署地址。
 
+helper 内的 Node watch 进程会在后端源码变更时重载服务，保持当前隧道地址与已有 OAuth 注册。更新卡片后仍需刷新工具，并在新对话验证。不要手动终止 helper 或其隧道来重载后端，否则临时域名会失效。
+
 [Quick Tunnels](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/)用于测试，无稳定运行保证，也不支持 SSE。LOOP 使用 stateless Streamable HTTP 的 JSON 响应，不依赖独立 SSE 长连接。
 
 ## 8. 排错顺序
@@ -151,7 +155,7 @@ pnpm chatgpt:connect
 | 授权请求过期 | 授权页面有效期 5 分钟；回 ChatGPT 发起新授权，不反复提交旧表单 |
 | `/mcp` 打开 401 | 未授权的协议请求是预期；不要改成 No authentication 规避 OAuth |
 | OAuth 提示 resource / audience 不匹配 | 检查是否混用了旧域名、漏掉 `/mcp`，或固定部署代理 Host 不正确 |
-| 连接后没工具 / 卡片 | 刷新工具列表，确认 10 个工具和 `loop_preview_design`；新对话明确选择 LOOP；检查构建和 UI 资源 |
+| 连接后没工具 / 卡片 | 刷新工具列表，确认 10 个设计工具及卡片专用的素材工具；新对话明确选择 LOOP；检查构建和 v2 UI 资源 |
 | 有卡片，3D 加载失败 | 检查同一 HTTPS 域名 `/assets/` 可访问、CORS / CSP 和 WebGL；卡片可回退到 SVG |
 | `loop_suggest_design` 提示不可用 | 专用入口有意关闭；让 ChatGPT 读目录并调用 `loop_preview_design` |
 | 保存后另一个域名看不到 | 访客 Cookie 和域名不同；先按第 6 节确认身份，不要清库 |
@@ -185,9 +189,11 @@ node --import tsx server/chatgpt.ts
 
 ## 10. 实现与验证记录
 
-- MCP 协议：2025-11-25，官方 SDK，10 个工具；英文协议说明见 [MCP.md](MCP.md)。
-- UI 资源：`ui://loop/design-v1.html`，`text/html;profile=mcp-app`，官方 MCP Apps bridge。
-- UI 工具调用经宿主转发，iframe 不持有 OAuth Token；3D 资产来自声明的服务端 origin。
+- MCP 协议：2025-11-25，官方 SDK，10 个设计工具及 1 个仅供卡片调用的素材工具；英文协议说明见 [MCP.md](MCP.md)。
+- UI 资源：`ui://loop/design-v5.html`，`text/html;profile=mcp-app`，官方 MCP Apps bridge；v1 / v2 / v3 / v4 URI 仍可读取。
+- 对话模型保存并打开同一草稿时，卡片会重新读取持久化基准，自动核对“已保存”状态；后台核对只更新保存基准，不覆盖用户继续编辑的名称或配件。工具描述也要求保存结束后再打开预览。
+- 保存比对使用固定字段顺序，兼容 Supabase JSONB 对顶层配置及配件字段的重排，相同配置重新读取后仍显示已保存。
+- UI 工具调用经宿主转发，iframe 不持有 OAuth Token；3D 资产通过仅供卡片调用的 `loop_get_preview_asset` 读取，固定文件白名单与单条消息大小限制。选择器缩略图内嵌，素材不依赖外部 fetch。首次挂件预览只读取灯光与皮革的 7 个素材，点选挂包效果后才读取当前包模型。宿主仍在传输素材时保留加载状态，素材到齐后自动显示 3D；25 秒渲染超时从素材准备完成后开始。
 - OAuth：DCR、显式访客授权、S256 PKCE、一次性 code、1 小时 access token、轮换 refresh token、30 天 grant、撤销。
 - 真实 Chrome 回归覆盖表单 Origin 和跨站 303 回调；授权页 CSP 只额外允许已登记客户端的 callback origin。
 - 2026-10-08 作者账号实测：OAuth 安装、目录、此前人民币版本的 ¥96 樱桃 / 木珠 / 珍珠卡片、3D / 挂包、锁定中央樱桃后对话改银色。该账号测试未保存或下单；当前美元版本还需在目标账号重新验收。
