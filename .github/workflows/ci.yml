@@ -20,4 +20,5 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: node scripts/vercel-artifact-check.mjs
+      - run: node --import tsx scripts/mcp-streaming-check.mjs
       - run: pnpm mcp:desktop-check

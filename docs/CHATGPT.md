@@ -2,9 +2,37 @@
 
 目标体验是：在 ChatGPT 对话里选中 LOOP，用自然语言设计、修改包挂，结果直接显示为可交互卡片。无需重新搭建一个聊天网页。项目另有 `/mcp-demo.html` 用于调试协议，两者共用业务规则。
 
-第一次接手先完成 [SETUP.md](SETUP.md)；变量说明见 [ENVIRONMENT.md](ENVIRONMENT.md)。本次交接已在作者的真实 ChatGPT 网页账号完成连接与交互验证，队友需要在自己的账号重新安装和授权。
+试用现有服务直接按下面的公网连接步骤操作，无需安装 Node.js、pnpm、Git 或 cloudflared，也不需要 GitHub 仓库权限。接手开发或自己部署时再完成 [SETUP.md](SETUP.md)；变量说明见 [ENVIRONMENT.md](ENVIRONMENT.md)。每位试用者都需要在自己的 ChatGPT 账号中添加连接并授权。
 
-## 1. 账号与软件要求
+## 使用现有公网服务／分享给队友
+
+固定 MCP 地址：[https://loop-charm-studio.vercel.app/mcp](https://loop-charm-studio.vercel.app/mcp)。网站：[LOOP Studio](https://loop-charm-studio.vercel.app/)。给队友分享这两个地址及本节即可，服务由 Vercel 托管，无需保持作者电脑或临时隧道在线。
+
+1. 在自己的 ChatGPT 中打开 **Plugins / 插件 → Add / 添加 → Add custom MCP server**。入口名称可能随客户端版本变化；账号或工作区必须允许自定义 MCP 连接。如果没有入口，先按该账号显示的设置或工作区管理权限确认能否启用。作者能使用不代表其他账号自动具备权限。
+2. 使用以下连接设置。LOOP 支持 OAuth 动态客户端注册，不需要试用者申请服务端 API Key。
+
+| 字段 | 填写内容 |
+| --- | --- |
+| Name | `LOOP` |
+| Description | `Design and preview custom bag charms, save drafts and confirm test orders.` |
+| Connection | Server URL |
+| Server URL | `https://loop-charm-studio.vercel.app/mcp` |
+| Authentication | **OAuth** |
+| OAuth Client ID | **留空** |
+| OAuth Client Secret | **留空** |
+
+3. 点击 **Continue to LOOP**，在 LOOP 授权页确认使用当前浏览器的访客工作台，再点击「授权连接」返回 ChatGPT。每个人用自己的浏览器完成授权；不要共享作者的 Cookie、Bearer Token 或服务端密钥。
+4. 在新对话选择 LOOP，发送「读取 LOOP 目录，给棕色包搭一款 15 美元以内的包挂，展示可交互 3D 预览，先不保存或下单」。以真实工具调用、卡片显示和配件选择结果为验收依据；只打开 `/mcp` 得到 401 是正常的认证提示。
+
+**身份边界：** OAuth 绑定的是授权浏览器在 `loop-charm-studio.vercel.app` 下的访客 Cookie，不是邮箱登录或 ChatGPT 账号的一对一注册。设计和订单按该访客身份隔离；在同一授权浏览器打开网站可以查看其收藏。换浏览器、清 Cookie 或换域名会进入另一位访客的工作台，不会自动同步旧草稿；同一浏览器访客授权多个客户端也会连接同一个工作台。授权方式不提供跨设备用户账号。
+
+**付款边界：** MCP 卡片的 `loop_prepare_test_order` / `loop_confirm_test_order` 只创建普通测试订单，不调用 Amazon Pay。Amazon Pay 沙盒结账在 [网站工作室](https://loop-charm-studio.vercel.app/#/studio) 中使用单独的沙盒测试买家；不会真实扣款或发货。同一访客的网站沙盒订单状态可通过 `loop_list_orders` 读取。连接 LOOP MCP 不需要注册 Amazon 商家或订阅卖家计划。
+
+这里分享的是可自行添加和授权的服务器地址，不是公开目录安装页。公开目录发布需要按 [OpenAI 官方提交与发布流程](https://developers.openai.com/plugins/deploy/submission) 准备插件、提交审核，并在获批后发布；服务器上线和自定义连接成功都不能证明已经上架。
+
+以下第 1–4 节用于**自己运行或部署另一份 MCP 服务**；只试用现有公网服务可直接看第 5 节的对话验收。
+
+## 1. 账号与软件要求（自行部署）
 
 - GitHub 访问权限、Node.js 24、pnpm 11.25.0、已安装的项目依赖。
 - ChatGPT 目标账号 / 工作区有创建自定义 MCP 服务器的权限。可先确认插件页面能看到该入口；权限因账号或工作区而异，作者能用不代表队友自动能用。
@@ -65,7 +93,7 @@ Authentication: OAuth (dynamic client registration; leave client ID/secret empty
 
 如果 3004 被占用，在 `.env` 中加 `CHATGPT_PORT=3005` 再运行 helper。不要为了腾端口停止其他人的开发服务。保留终端和网络连接，电脑休眠可能中断隧道。
 
-## 4. 在自己的 ChatGPT 中安装
+## 4. 在自己的 ChatGPT 中连接自建服务
 
 建议先用浏览器打开 ChatGPT，界面名称可能因语言 / 版本不同而略有变化。
 

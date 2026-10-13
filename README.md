@@ -2,11 +2,17 @@
 
 LOOP 把「我想给这个包配一个什么样的挂件」变成可继续修改的设计：AI 从真实目录选择配件，用户查看 3D、锁定喜欢的部分、调整组合、保存草稿，并在明确确认后创建测试订单。
 
-**当前交接版本：2026-10-08。** 已有独立网站和可安装到 ChatGPT 的 MCP 插件；界面默认英文，新报价采用美元（USD），按原人民币单价 ÷ 7 四舍五入为整数美元，再按明细加总。ChatGPT 是对话入口，设计卡片直接显示在对话内；`/mcp-demo.html` 是额外的协议调试页面。所有订单都是模拟订单，不扣款、不发货。
+**当前交接版本：2026-10-13。** 已有独立网站和可安装到 ChatGPT 的 MCP 插件；界面默认英文，新报价采用美元（USD），按原人民币单价 ÷ 7 四舍五入为整数美元，再按明细加总。ChatGPT 是对话入口，设计卡片直接显示在对话内；`/mcp-demo.html` 是额外的协议调试页面。MCP 可确认体验订单；网站另支持已完成实际交易验收的 Amazon Pay 沙盒付款。两种路径均不真实扣款或发货。
 
 仓库：[Evan0571/charm-studio](https://github.com/Evan0571/charm-studio)，默认分支 `master`。仓库目前为私有，队友须先取得访问权限。代码链接不等于在线部署地址。
 
 **固定地址部署：[Vercel 部署步骤](docs/VERCEL_DEPLOY.md)**。本版包含同域后端路由、Supabase 共享授权存储和大资源流式传输。按文档配置数据库与环境变量后，从 `master` 部署完整网站和 LOOP 连接。
+
+## 直接试用与分享
+
+网站：[loop-charm-studio.vercel.app](https://loop-charm-studio.vercel.app/)。MCP Server URL：`https://loop-charm-studio.vercel.app/mcp`。
+
+别人可在有自定义 MCP 权限的 ChatGPT 网页账号里添加 `LOOP`，填写该 Server URL，选择 **OAuth**，Client ID / Client Secret 留空，然后完成自己的「授权连接」。使用现有服务无需克隆私有仓库、安装 Node.js 或运行作者的电脑。完整步骤、访客身份及公开目录发布边界见 [ChatGPT 接入与分享](docs/CHATGPT.md)。
 
 ## 给第一次接手的队友
 
@@ -43,7 +49,8 @@ LOOP 把「我想给这个包配一个什么样的挂件」变成可继续修改
 | 独立网页 AI 灵感对话 | **需要** | 可选 | 不需要 | 不需要 |
 | 本地 MCP 调试页的目录示例 | 不需要 | 可选 | 不需要 | 不需要 |
 | 本地 MCP 调试页的自然语言 AI | **需要** | 可选 | 不需要 | 不需要 |
-| ChatGPT 中安装 LOOP、对话生成预览 | **不需要项目 API Key** | 可选 | 临时接入需要 | **需要自定义 MCP 权限** |
+| ChatGPT 使用已部署 LOOP、对话生成预览 | **不需要项目 API Key** | 服务端已配置 | 不需要 | **需要自定义 MCP 权限** |
+| 自己部署本地 MCP 并临时连接 ChatGPT | **不需要项目 API Key** | 可选 | 需要 | **需要自定义 MCP 权限** |
 
 ChatGPT 路径使用宿主模型和账号额度。独立网页路径由后端调用 OpenAI API，使用 API 项目的计费与权限。两者的模型设置互不替代。
 
@@ -95,6 +102,8 @@ OPENAI_MODEL=gpt-4.1-mini
 **当前代码默认模型及本次交接电脑实际配置均为 `gpt-4.1-mini`。** 可以修改 `OPENAI_MODEL`，但新模型必须支持 Responses API 和严格 JSON Schema 结构化输出，并对你的 API 项目可用。模型参数、超时及验证步骤见 [环境与模型说明](docs/ENVIRONMENT.md)。官方功能说明：[GPT-4.1 mini](https://developers.openai.com/api/docs/models/gpt-4.1-mini)、[Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses)。
 
 ## 开启 ChatGPT MCP 插件
+
+使用上面的已部署地址时，直接按 [ChatGPT 接入与分享](docs/CHATGPT.md) 添加并授权。下面的命令用于运行自己的本地服务。
 
 安装 [cloudflared](https://developers.cloudflare.com/tunnel/downloads/) 后，在项目根目录执行：
 

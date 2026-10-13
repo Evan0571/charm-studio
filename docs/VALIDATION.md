@@ -1,8 +1,18 @@
 # 验收记录
 
-验证日期：2026 年 10 月 8 日。
+最新验证日期：2026 年 10 月 13 日；下方各节保留对应版本的验收范围。
 
-## 2026-10-13 — Amazon Pay 美国区沙盒接入
+## 2026-10-13 — 线上沙盒付款与 MCP 分享检查
+
+- 网站与 MCP 固定域名为 `https://loop-charm-studio.vercel.app/`。生产版本 `89fdcef` 已部署；`/api/health` 返回 HTTP 200 / `storage:supabase`，Amazon Pay 状态为已配置的 Sandbox。
+- 真实 Amazon Pay 测试买家已完成 US$15.00 沙盒交易。Amazon 返回 `Captured`，服务端按会话、订单、单次授权、Sandbox 环境及金额核验后保存 `sandbox_paid`，网站重新核验显示付款成功。结账会话在网站发起，首次完成由修复后的本地服务连接同一生产数据库和 Amazon 沙盒 API 执行；修复随后部署，线上回执读取同一笔已核验交易。没有手工改为已支付，也没有使用 mock provider；没有真实扣款或发货。
+- 已修复官方响应省略 `checkoutMode` 时被错误拒绝，以及已绑定的 Completed 会话省略元数据后的重试；明确冲突的模式、环境、金额、授权或交易仍拒绝。`pnpm test`：**173 / 173 通过**。
+- 付款证据和测试买家密码仅保存在被 Git 忽略的本机 `.data/amazon-pay/`，API 私钥仅在本机私密配置及 Vercel 服务端环境中；未提交到仓库。
+- 公网只读分享检查：`/.well-known/oauth-protected-resource/mcp` 与 `/.well-known/oauth-authorization-server` 均 HTTP 200，canonical resource 为 `https://loop-charm-studio.vercel.app/mcp`，支持动态客户端注册与 S256 PKCE。匿名 `/mcp` 返回 HTTP 401 及正确 OAuth discovery 地址。无需 Vercel 登录即可访问发现接口。
+- 最新主工作区完整构建、Vercel 云入口离线装载和桌面 stdio 检查通过。新增构建后 `scripts/mcp-streaming-check.mjs` 并接入 CI：完整卡片和 GLB 的真实 HTTP SSE 响应均超过 4.5 MiB、无 Content-Length，内容完整；官方 SDK 可解析同一完整卡片。使用内存存储，仅允许本机 HTTP 请求，不调用外部模型、Amazon 或真实数据库。
+- 这些检查确认公网入口和授权配置可达，未代替第二个真实 ChatGPT 账号的安装、OAuth 与卡片点击验收。个人自定义连接不等于公开插件目录上架。MCP 卡片仍只创建体验订单，Amazon Pay 沙盒付款在网站完成。
+
+## 2026-10-13 — Amazon Pay 美国区沙盒接入初版（历史记录）
 
 - 网页提供官方 Amazon Pay 按钮与 `PayOnly` 单次结账，固定 USD/Sandbox。服务端签名绑定订单和报价，回跳后核验会话、单次授权、环境、订单关联、Charge 与实际 Captured 金额，再保存 `sandbox_paid`。
 - `pnpm test`：146 / 146 通过，其中支付 provider/API/storage/回跳单测 54 项。覆盖跨访客隔离、并发会话竞争、幂等、金额与环境篡改、付款后读库/落库失败恢复、拒绝/取消原因和待核验状态。官方 SDK 的本地 PSS V2 签名验签通过；测试没有向 Amazon 发起付款请求。

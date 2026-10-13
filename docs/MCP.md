@@ -2,6 +2,16 @@
 
 LOOP turns a bag-charm brief into a catalog-valid design, supports conversational revisions with locked parts, saves an editable 3D draft, and completes an explicitly confirmed test checkout. ChatGPT is the primary conversational host, with an inline MCP Apps preview. See [ChatGPT setup](CHATGPT.md). The standalone web simulator remains an actual MCP debugging client.
 
+## Use the hosted service and share it
+
+The shared server URL is **https://loop-charm-studio.vercel.app/mcp**, and the website is **https://loop-charm-studio.vercel.app/**. Trying this hosted service does not require GitHub access, Node.js, a local installation, or a tunnel. Each user adds the server in a ChatGPT account/workspace that allows custom MCP connections, selects **OAuth**, leaves the OAuth client ID and secret empty, and completes their own visitor consent. See the [hosted connection steps](CHATGPT.md#使用现有公网服务分享给队友).
+
+OAuth binds the connection to the authorizing browser's guest workspace on that domain. It does not create a verified ChatGPT-linked or cross-device customer account. Distinct browser guests have isolated designs and orders; multiple clients authorized by the same browser guest access that same workspace. Share the endpoint and instructions, rather than cookies, bearer credentials, or server secrets.
+
+MCP checkout tools only create ordinary test orders. Amazon Pay sandbox payment is a separate website checkout using a sandbox test buyer; it causes no real charge or shipping. The connected guest's website sandbox order statuses can be read through `loop_list_orders`, but the MCP card does not initiate Amazon Pay checkout.
+
+Sharing a reachable MCP endpoint is separate from a public directory listing. Directory distribution requires OpenAI review and publication after approval; this guide does not claim LOOP is listed. See the [official submission and publication process](https://developers.openai.com/plugins/deploy/submission). The local stdio deployment is a separate desktop option, not the hosted server's installation link.
+
 ## Competition path
 
 Verified on October 8, 2026 against the [official rules](https://amazonappdev2026.devpost.com/rules), [FAQ](https://amazonappdev2026.devpost.com/details/faqs), and [resources](https://amazonappdev2026.devpost.com/resources):
@@ -88,7 +98,7 @@ Regular studio REST API ---> same studio service and storage
 | `loop_confirm_test_order` | `confirmationToken`, `confirmed: true` | Create one test order; the same token is idempotent |
 | `loop_list_orders` | optional `offset`, `limit` | Retrieve this guest's test orders and stored prices |
 
-The server also provides the MCP Apps UI resource `ui://loop/design-v2.html` (with a legacy v1 URI alias), the JSON resource `loop://catalog` and the prompt `design-bag-charm` with an `idea` argument. A renderer-only `loop_get_preview_asset` tool reads a fixed whitelist of public product assets; binary data stays in `_meta`, outside model-visible content. Splitting assets keeps the initial UI and individual messages below the default 10 MiB stdio limit. Tool schemas reject unknown top-level fields; successful results include text and structured content. Business failures use MCP `isError` results; protocol/authentication failures use protocol errors or HTTP status codes.
+The server also provides the MCP Apps UI resource `ui://loop/design-v5.html` (with v1–v4 URI aliases), the JSON resource `loop://catalog` and the prompt `design-bag-charm` with an `idea` argument. A renderer-only `loop_get_preview_asset` tool reads a fixed whitelist of public product assets; binary data stays in `_meta`, outside model-visible content. Splitting assets keeps the initial UI and individual messages below the default 10 MiB stdio limit. Tool schemas reject unknown top-level fields; successful results include text and structured content. Business failures use MCP `isError` results; protocol/authentication failures use protocol errors or HTTP status codes.
 
 Names must be 1–50 characters. List tools default to 20 records and allow up to 50 per call. Use `offset` to retrieve more. AI conversations accept up to 20 messages and 20,000 characters total; the demo retains a bounded recent conversation. Chat transcripts are in-memory only. Saved designs and confirmed orders survive reloads through existing storage.
 
@@ -119,7 +129,7 @@ The web UI waits for a real button click; external agents must follow the tool i
 
 ## Optional hosting
 
-Hosting is not required by the competition, but ChatGPT needs a reachable MCP endpoint. The implemented temporary HTTPS route is `pnpm chatgpt:connect`; see [setup](CHATGPT.md). For stable single-process hosting, use HTTPS and retain both business storage and OAuth state:
+The existing public service is hosted on Vercel. To deploy another fixed-domain instance, follow [VERCEL_DEPLOY.md](VERCEL_DEPLOY.md); OAuth state is shared through Supabase and large MCP responses use streaming. Hosting is not required by the competition, but ChatGPT needs a reachable MCP endpoint. The temporary HTTPS route for local development is `pnpm chatgpt:connect`; see [setup](CHATGPT.md). For standalone single-process hosting, use HTTPS and retain both business storage and OAuth state:
 
 ```dotenv
 HOST=0.0.0.0
@@ -130,7 +140,7 @@ MCP_TOKEN_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 
 The URL must end in `/mcp` with no credentials, query or fragment. Forward the configured public Host through the proxy. Arbitrary origins are not allowed; the demo uses the same origin as the server. The local key at `.data/mcp-token-secret` is created with mode 0600 and is not committed. No environment credentials are printed in diagnostics.
 
-AI requests share the original per-guest limit (6/minute) and global concurrency limit (4) across REST and MCP. Host/Origin checks, payload limits and signed guest identity are included; verified-user accounts, distributed OAuth storage, deployment-wide rate limiting and real commerce are future work. OAuth and grant revocation are implemented for the single-process ChatGPT demo.
+AI requests share the original per-guest limit (6/minute) and process-wide concurrency limit (4) across REST and MCP. Host/Origin checks, payload limits and signed guest identity are included. OAuth and grant revocation work with local SQLite or shared Supabase storage; Vercel requires the latter. Verified-user accounts, deployment-wide rate limiting and real commerce remain future work.
 
 ## Validation and submission preparation
 
@@ -138,6 +148,7 @@ AI requests share the original per-guest limit (6/minute) and global concurrency
 pnpm test
 pnpm mcp:smoke
 pnpm build
+node --import tsx scripts/mcp-streaming-check.mjs
 ```
 
 The MCP tests connect a real official-SDK client to an actual HTTP server. They cover version 2025-11-25, tools/resources/prompts, browser/MCP data sharing, guest isolation, invalid configurations, explicit checkout, concurrent retry deduplication, forged/expired credentials, request protections, and the shared AI limiter. The model JSON schema also enforces at least one charm and the hero template's required main charm; regression tests cover valid alternative placements and reject bead-only drafts. AI provider calls are mocked in automated tests. `mcp:smoke` uses a temporary in-memory SQLite database and no model API, and prints the actual successful tool calls.
