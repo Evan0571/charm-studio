@@ -1,5 +1,5 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowRight, Check, CheckCheck, ChevronDown, CircleHelp, Copy, Heart, LockKeyhole, Minus, Move, Pause, Play, Plus, RotateCcw, RotateCw, Search, ShoppingBag, SlidersHorizontal, Trash2, UnlockKeyhole, X } from 'lucide-react';
+import { ArrowRight, Check, CheckCheck, ChevronDown, CircleAlert, CircleHelp, Clock3, Copy, Heart, LockKeyhole, Minus, Move, Pause, Play, Plus, RotateCcw, RotateCw, Search, ShoppingBag, SlidersHorizontal, Trash2, UnlockKeyhole, X } from 'lucide-react';
 import { useLanguage, LanguageSwitcher } from './Language';
 import type { Catalog, DesignConfig, Order, Part, PartCategory, Quote, SavedDesign, TemplateId } from '../shared/types';
 import type { StylistProposal } from '../shared/stylist';
@@ -9,6 +9,8 @@ import { CharmPreview, PartArt } from './CharmArt';
 import LandingPage from './LandingPage';
 import AIStylist from './AIStylist';
 import ProductPreview from './ProductPreview';
+import AmazonPayButton, { AMAZON_PAY_RETURN_KEY, clearAmazonPayReturnQuery, readAmazonPayReturn, type AmazonPayReturn } from './AmazonPayButton';
+import type { AmazonPayStatus } from '../shared/amazon-pay';
 import { featuredDesigns } from './featuredDesigns';
 import { designSignature, readWorkspaceDraft, storeWorkspaceDraft, visualKey, type WorkspaceDraft } from './workspaceDraft';
 import { BAG_COLOR_PRESETS, BAG_DEFAULT_COLORS, normalizeBagColor } from './three/bagColors';
@@ -26,7 +28,7 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
 }
 const post = (body: unknown) => ({ method: 'POST', body: JSON.stringify(body) });
 type Page = 'home' | 'search' | 'studio' | 'saved';
-type ModalName = 'save' | 'checkout' | 'receipt' | 'help' | 'delete' | 'saved' | null;
+type ModalName = 'save' | 'checkout' | 'receipt' | 'payment' | 'help' | 'delete' | 'saved' | null;
 type BagStyle = 'tote' | 'shoulder' | 'mini';
 const readPage = (): Page => {
   const route = location.hash.slice(2);
@@ -39,6 +41,15 @@ function readPreviewCache(): Record<string, string> {
       .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].startsWith('data:image/') && entry[1].length < 900000);
     return Object.fromEntries(values.slice(-12));
   } catch { return {}; }
+}
+function readPaymentReturn(): AmazonPayReturn | null {
+  let stored: string | null = null;
+  try { stored = sessionStorage.getItem(AMAZON_PAY_RETURN_KEY); } catch { /* The URL still works without session storage. */ }
+  return readAmazonPayReturn(new URL(location.href), stored);
+}
+function rememberPaymentReturn(value: AmazonPayReturn | null) {
+  try { if (value) sessionStorage.setItem(AMAZON_PAY_RETURN_KEY, JSON.stringify(value)); else sessionStorage.removeItem(AMAZON_PAY_RETURN_KEY); }
+  catch { /* In-memory retries remain available. */ }
 }
 
 export default function App() {
@@ -71,6 +82,9 @@ export default function App() {
   const [receipt, setReceipt] = useState<Order | null>(null), [deleteTarget, setDeleteTarget] = useState<SavedDesign | null>(null);
   const [savedResult, setSavedResult] = useState<SavedDesign | null>(null);
   const [checkoutSnapshot, setCheckoutSnapshot] = useState<{ config: DesignConfig; quote: Quote; name: string; key: string } | null>(null);
+  const [amazonPayStatus, setAmazonPayStatus] = useState<AmazonPayStatus | null>(null);
+  const [amazonReturn, setAmazonReturn] = useState<AmazonPayReturn | null>(readPaymentReturn);
+  const returnStarted = useRef(false);
   const [snapshots, setSnapshots] = useState<Record<string, string>>(readPreviewCache);
   const quoteSeq = useRef(0), mutating = useRef(false);
   const reviewTarget = useRef<{ config: DesignConfig; name: string } | null>(null);
@@ -98,6 +112,7 @@ export default function App() {
   const closeModal = () => { if (!busy) { setModal(null); setActionError(''); } };
 
   useEffect(() => { api<Catalog>('/catalog').then(setCatalog).catch(error => setLoadError(error.message)); }, []);
+  useEffect(() => { api<AmazonPayStatus>('/payments/amazon-pay/status', { signal: AbortSignal.timeout(10000) }).then(setAmazonPayStatus).catch(() => setAmazonPayStatus({ configured: false, environment: 'sandbox' })); }, []);
   useEffect(() => {
     const navigate = () => { updatePage(readPage()); if (location.hash.startsWith('#/')) window.scrollTo({ top: 0, behavior: 'instant' }); };
     window.addEventListener('popstate', navigate); window.addEventListener('hashchange', navigate);
@@ -188,6 +203,60 @@ export default function App() {
     } catch (error) { setActionError((error as Error).message); }
     finally { mutating.current = false; setBusy(false); }
   };
+  const keepCheckoutDraft = () => {
+    if (!checkoutSnapshot) return;
+    const next = designSignature(config, name) === designSignature(checkoutSnapshot.config, checkoutSnapshot.name)
+      ? workspace : { draftId: crypto.randomUUID(), config: structuredClone(checkoutSnapshot.config), name: checkoutSnapshot.name };
+    setWorkspace(next); setDraftStored(storeWorkspaceDraft(next));
+  };
+  const verifyAmazonPayment = async (details: AmazonPayReturn | null = amazonReturn) => {
+    if (mutating.current) return;
+    mutating.current = true; setBusy(true); setActionError(''); setPage('studio'); setModal('payment');
+    try {
+      if (!details?.orderId) throw new Error('Incomplete return');
+      let checkoutSessionId = details.checkoutSessionId;
+      if (!checkoutSessionId) {
+        const existing = await api<Order>(`/orders/${encodeURIComponent(details.orderId)}`, { signal: AbortSignal.timeout(10000) });
+        if (existing.payment?.provider !== 'amazon_pay') throw new Error('Incomplete return');
+        if (existing.status !== 'sandbox_pending') { setReceipt(existing); setModal('receipt'); rememberPaymentReturn(null); void refreshSaved(); return; }
+        checkoutSessionId = existing.payment.checkoutSessionId || null;
+      }
+      if (!checkoutSessionId) throw new Error('Incomplete return');
+      const completeDetails = { orderId: details.orderId, checkoutSessionId };
+      setAmazonReturn(completeDetails); rememberPaymentReturn(completeDetails);
+      const order = await api<Order>('/payments/amazon-pay/complete', { ...post(completeDetails), signal: AbortSignal.timeout(50000) });
+      setReceipt(order); setModal('receipt');
+      if (order.status !== 'sandbox_pending') rememberPaymentReturn(null);
+      void refreshSaved();
+    } catch {
+      setActionError(text('We could not verify this sandbox payment yet. Try checking again, or continue with your saved draft.', '暂时无法核验这笔沙盒支付。可以重新核验，或继续已保留的草稿。'));
+    } finally { mutating.current = false; setBusy(false); }
+  };
+  useEffect(() => {
+    if (!amazonReturn || returnStarted.current) return;
+    returnStarted.current = true; rememberPaymentReturn(amazonReturn);
+    const cleaned = clearAmazonPayReturnQuery(new URL(location.href));
+    window.history.replaceState(window.history.state, '', `${cleaned.pathname}${cleaned.search}${cleaned.hash}`);
+    void verifyAmazonPayment(amazonReturn);
+  }, [amazonReturn]);
+  const orderStatusText = (order: Order) => {
+    switch (order.status) {
+      case 'sandbox_paid': return text('Sandbox payment verified', '沙盒支付已核验成功');
+      case 'sandbox_pending': return text('Sandbox payment not yet confirmed', '沙盒支付尚未确认');
+      case 'sandbox_failed': return text('Sandbox payment unsuccessful', '沙盒支付未成功');
+      case 'sandbox_canceled': return text('Sandbox checkout canceled', '沙盒结账已取消');
+      default: return text('Test order confirmed', '体验订单已确认');
+    }
+  };
+  const receiptText = (order: Order) => {
+    switch (order.status) {
+      case 'sandbox_paid': return text('Amazon Pay verified this sandbox payment. No real charge or shipping.', 'Amazon Pay 已核验这笔沙盒付款，不会真实扣款或发货。');
+      case 'sandbox_pending': return text('Amazon Pay has not confirmed a completed sandbox payment. You can check its status again.', 'Amazon Pay 尚未确认沙盒付款完成，可以再次核验状态。');
+      case 'sandbox_failed': return text('This sandbox payment did not complete. Your design is kept; no real charge or shipping.', '这笔沙盒付款未完成。搭配已保留，不会真实扣款或发货。');
+      case 'sandbox_canceled': return text('This sandbox checkout was canceled. Your design is kept; no real charge or shipping.', '这次沙盒结账已取消。搭配已保留，不会真实扣款或发货。');
+      default: return text('No payment was taken. Your design is ready to revisit.', '没有产生任何扣款，这份搭配已为你记录。');
+    }
+  };
   const reopen = (design: SavedDesign) => {
     draftSavedVersions.current.set(design.id, { savedId: design.id, savedSignature: designSignature(design.config, design.name) });
     restore({ draftId: design.id, config: design.config, name: design.name, savedId: design.id, savedSignature: designSignature(design.config, design.name) });
@@ -271,7 +340,7 @@ export default function App() {
             </div>
             <div className="checkout-panel"><div className="price-line"><div><span>{text('Your one-of-a-kind', '这份专属搭配')}</span><strong aria-live="polite">{validQuote && quote ? money(quote.total) : quoting ? '…' : '—'}<small>{text('USD', '美元')}</small></strong></div><button className="text-action" disabled={!validQuote || busy} onClick={() => void review()}>{text('Price details', '价格明细')}<ChevronDown size={14} /></button></div>
               {quoteError && <p className="error-message" role="alert">{tr(quoteError)}</p>}
-              <div className="studio-checkout-actions"><button className="secondary" onClick={() => openModal('save')}><Heart size={16} />{tr('保存设计')}</button><button className="primary" disabled={!validQuote || busy} onClick={() => void review()}>{text('Review design', '确认搭配')}<ArrowRight size={16} /></button></div><p className="checkout-note">{text('Studio preview · No payment or delivery', '创作体验版 · 不会扣款或发货')}</p>
+              <div className="studio-checkout-actions"><button className="secondary" onClick={() => openModal('save')}><Heart size={16} />{tr('保存设计')}</button><button className="primary" disabled={!validQuote || busy} onClick={() => void review()}>{text('Review design', '确认搭配')}<ArrowRight size={16} /></button></div><p className="checkout-note">{text('Test orders & sandbox checkout · No real charge or shipping', '体验订单与沙盒结账 · 不会真实扣款或发货')}</p>
             </div>
           </aside>
         </div>
@@ -279,19 +348,24 @@ export default function App() {
       {page === 'saved' && <section className="saved-page atelier-collection">
         <div className="studio-heading"><div><span className="eyebrow">YOUR LITTLE COLLECTION</span><h1>{text('A place for your favorites.', '把每一份喜欢，好好收藏。')}</h1><p>{text('Your designs, ready whenever inspiration returns.', '每一件作品，都可以继续成为新的灵感。')}</p></div><button className="secondary" onClick={() => setPage('studio')}><Plus size={16} />{text('Continue your draft', '继续当前草稿')}</button></div>
         <div className="saved-tabs" role="tablist" aria-label={text('Collection type', '收藏类别')}><button role="tab" aria-selected={savedTab === 'designs'} className={savedTab === 'designs' ? 'active' : ''} onClick={() => setSavedTab('designs')}>{text('Designs', '作品')}<span>{designs.length}</span></button><button role="tab" aria-selected={savedTab === 'orders'} className={savedTab === 'orders' ? 'active' : ''} onClick={() => setSavedTab('orders')}>{text('Test orders', '测试订单')}<span>{orders.length}</span></button></div>
-        {listLoading ? <div className="empty-state"><span className="spinner" /><p>{tr('正在整理你的作品…')}</p></div> : listError ? <div className="empty-state"><p role="alert">{tr(listError)}</p><button className="secondary" onClick={refreshSaved}>{tr('重试')}</button></div> : savedTab === 'designs' ? designs.length ? <div className="saved-grid">{designs.map(design => <article className="saved-card" key={design.id}><button className="saved-art" aria-label={tr('继续编辑{0}', design.name)} onClick={() => reopen(design)}>{renderStill(design.config, design.name)}<span>{text('Make another little change', '接着搭配')}<ArrowRight size={15} /></span></button><div className="saved-card-info"><div><h3>{design.name}</h3><p>{catalog.templates.find(item => item.id === design.config.templateId)?.name} · {new Date(design.updatedAt).toLocaleDateString(locale)}</p></div><button className="circle-button" disabled={busy} aria-label={tr('删除{0}', design.name)} onClick={() => { setDeleteTarget(design); openModal('delete'); }}><Trash2 size={15} /></button></div></article>)}</div> : <div className="collection-empty"><div><span className="eyebrow">A COLLECTION STARTS WITH ONE</span><h2>{text('Your first favorite is waiting.', '第一件喜欢，等你来搭配。')}</h2><p>{text('Start with a considered pairing, change a detail, and save something that feels like you.', '从一组精选搭配开始，换一点细节，收藏一件属于你的作品。')}</p></div><div className="collection-starters">{featuredDesigns.map(item => <button key={item.id} onClick={() => startDesign(item.config, item.name[language === 'en' ? 'en' : 'zh'])}><img src={item.image} alt="" /><span>{item.name[language === 'en' ? 'en' : 'zh']}<ArrowRight size={16} /></span></button>)}</div></div> : orders.length ? <div className="order-list">{orders.map(order => <article className="order-card" key={order.id}><div className="order-art">{renderStill(order.config, order.designName)}</div><div><span className="status-tag"><Check size={12} />{tr('测试订单已确认')}</span><h3>{order.designName}</h3><p>{new Date(order.createdAt).toLocaleString(locale)}</p><small>{text('Reference', '编号')} {order.id.slice(0, 8).toUpperCase()}</small></div><div className="order-price"><strong>{money(order.quote.total, order.quote.currency)}</strong><button className="text-action" onClick={() => { setReceipt(order); openModal('receipt'); }}>{tr('查看订单')}<ArrowRight size={14} /></button></div></article>)}</div> : <EmptyState title={tr('还没有测试订单')} text={text('Review a finished design to experience the order confirmation.', '完成搭配后，可以体验订单确认流程。')} onAction={() => setPage('studio')} />}
+        {listLoading ? <div className="empty-state"><span className="spinner" /><p>{tr('正在整理你的作品…')}</p></div> : listError ? <div className="empty-state"><p role="alert">{tr(listError)}</p><button className="secondary" onClick={refreshSaved}>{tr('重试')}</button></div> : savedTab === 'designs' ? designs.length ? <div className="saved-grid">{designs.map(design => <article className="saved-card" key={design.id}><button className="saved-art" aria-label={tr('继续编辑{0}', design.name)} onClick={() => reopen(design)}>{renderStill(design.config, design.name)}<span>{text('Make another little change', '接着搭配')}<ArrowRight size={15} /></span></button><div className="saved-card-info"><div><h3>{design.name}</h3><p>{catalog.templates.find(item => item.id === design.config.templateId)?.name} · {new Date(design.updatedAt).toLocaleDateString(locale)}</p></div><button className="circle-button" disabled={busy} aria-label={tr('删除{0}', design.name)} onClick={() => { setDeleteTarget(design); openModal('delete'); }}><Trash2 size={15} /></button></div></article>)}</div> : <div className="collection-empty"><div><span className="eyebrow">A COLLECTION STARTS WITH ONE</span><h2>{text('Your first favorite is waiting.', '第一件喜欢，等你来搭配。')}</h2><p>{text('Start with a considered pairing, change a detail, and save something that feels like you.', '从一组精选搭配开始，换一点细节，收藏一件属于你的作品。')}</p></div><div className="collection-starters">{featuredDesigns.map(item => <button key={item.id} onClick={() => startDesign(item.config, item.name[language === 'en' ? 'en' : 'zh'])}><img src={item.image} alt="" /><span>{item.name[language === 'en' ? 'en' : 'zh']}<ArrowRight size={16} /></span></button>)}</div></div> : orders.length ? <div className="order-list">{orders.map(order => <article className="order-card" key={order.id}><div className="order-art">{renderStill(order.config, order.designName)}</div><div><span className={`status-tag status-${order.status}`}><OrderStatusIcon order={order} />{orderStatusText(order)}</span><h3>{order.designName}</h3><p>{new Date(order.createdAt).toLocaleString(locale)}</p><small>{text('Reference', '编号')} {order.id.slice(0, 8).toUpperCase()}</small></div><div className="order-price"><strong>{money(order.quote.total, order.quote.currency)}</strong><button className="text-action" onClick={() => { setReceipt(order); openModal('receipt'); }}>{tr('查看订单')}<ArrowRight size={14} /></button></div></article>)}</div> : <EmptyState title={tr('还没有测试订单')} text={text('Review a finished design to experience the order confirmation.', '完成搭配后，可以体验订单确认流程。')} onAction={() => setPage('studio')} />}
         <p className="saved-footnote">{text('Saved designs belong to this browser. Keep its cookies to return to your collection.', '作品保存在当前浏览器的访客账户下，请保留 Cookie 以便再次访问。')}</p>
       </section>}
     </main>
     <footer className="atelier-footer"><div><Logo small /><p>{text('Small objects. Personal stories.', '小小物件，自己的故事。')}</p></div><nav aria-label={text('Footer navigation', '页脚导航')}><button onClick={() => setPage('home')}>{text('The collection', '精选搭配')}</button><button onClick={() => setPage('search')}>{text('Find inspiration', '寻找灵感')}</button><button onClick={() => openModal('help')}>{text('Studio guide', '工作室指南')}</button></nav><div><span>© {new Date().getFullYear()} LOOP Studio</span><small>{text('An interactive design preview.', '互动搭配创作体验。')}</small></div></footer>
     {toast && <div className="toast" role="status"><CheckCheck size={17} />{toast}<button aria-label={tr('关闭提示')} onClick={() => setToast('')}><X size={15} /></button></div>}
-    {modal && <Modal key={modal} title={modal === 'save' ? text('Give it a little name.', '为它取一个名字。') : modal === 'saved' ? text('A new favorite, kept.', '这份喜欢，已经收藏。') : modal === 'checkout' ? text('The details of your design.', '确认你的专属搭配。') : modal === 'receipt' ? text('Your design, recorded.', '你的搭配，已被记录。') : modal === 'delete' ? text('Remove this design?', '删除这件作品？') : text('Welcome to the atelier.', '欢迎来到 LOOP 工作室。')} onClose={closeModal} busy={busy}>
+    {modal && <Modal key={modal} title={modal === 'save' ? text('Give it a little name.', '为它取一个名字。') : modal === 'saved' ? text('A new favorite, kept.', '这份喜欢，已经收藏。') : modal === 'checkout' ? text('The details of your design.', '确认你的专属搭配。') : modal === 'receipt' ? text('Your design, recorded.', '你的搭配，已被记录。') : modal === 'payment' ? text('Your Amazon Pay checkout.', '你的 Amazon Pay 结账。') : modal === 'delete' ? text('Remove this design?', '删除这件作品？') : text('Welcome to the atelier.', '欢迎来到 LOOP 工作室。')} onClose={closeModal} busy={busy}>
       {modal === 'save' && <><p className="modal-subtitle">{text('A name to find it by when you come back.', '起个名字，下次回来就能找到它。')}</p><div className="save-preview">{renderStill(config, name)}</div><label className="field-label" htmlFor="design-name">{tr('设计名称')}</label><input id="design-name" className="text-input" disabled={busy} value={name} maxLength={50} onChange={event => setWorkspace(previous => ({ ...previous, name: event.target.value }))} onKeyDown={event => { if (event.key === 'Enter') void save(); }} /><p className="field-hint">{workspace.savedId ? text('Save changes to this design, or keep a separate copy.', '可以更新这件作品，也可以另存一份。') : text('Kept in your collection on this browser.', '保存到本浏览器的个人收藏中。')}</p><ActionError message={tr(actionError)} /><button className="primary full-width" disabled={busy || !name.trim()} onClick={() => void save()}>{busy ? tr('正在保存…') : workspace.savedId ? text('Save changes', '保存修改') : tr('保存这份设计')}<Heart size={16} /></button>{workspace.savedId && <button className="text-action modal-bottom-link" disabled={busy || !name.trim()} onClick={() => void save(true)}><Copy size={14} />{text('Save as a new design', '另存为新作品')}</button>}</>}
       {modal === 'saved' && savedResult && <><div className="save-preview">{renderStill(savedResult.config, savedResult.name)}</div><div className="saved-celebration"><span className="status-tag"><Check size={13} />{text('Saved to your collection', '已保存到我的收藏')}</span><h3>{savedResult.name}</h3><p>{text('Come back, change a detail, fall in love all over again.', '随时回来，换一点细节，收获新的喜欢。')}</p></div><button className="primary full-width" onClick={() => { setModal(null); setSavedTab('designs'); setPage('saved'); }}>{text('See your collection', '查看我的收藏')}<ArrowRight size={16} /></button><button className="secondary full-width" onClick={closeModal}>{text('Keep creating', '继续创作')}</button></>}
-      {modal === 'checkout' && <>{!checkoutSnapshot ? <div className="review-loading">{busy && <span className="spinner" />}<p>{busy ? text('Checking the pieces and price…', '正在核对配件与明细…') : text('We could not load the details.', '暂时无法读取搭配明细。')}</p><ActionError message={tr(actionError)} />{!busy && <button className="secondary" onClick={() => void review(reviewTarget.current?.config, reviewTarget.current?.name)}>{tr('重试')}</button>}</div> : <><p className="modal-subtitle">{text('Every piece, accounted for. Take a moment to review.', '每一件小物都列在这里，确认后再记录你的搭配。')}</p><div className="checkout-summary"><div className="mini-preview">{renderStill(checkoutSnapshot.config, checkoutSnapshot.name)}</div><div><span className="eyebrow">YOUR LITTLE ONE</span><h3>{checkoutSnapshot.name}</h3><p>{catalog.templates.find(item => item.id === checkoutSnapshot.config.templateId)?.subtitle}</p></div></div><div className="bill-lines">{checkoutSnapshot.quote.lines.map((line, index) => <div key={`${line.id}-${index}`}><span>{tr(line.name)}{line.quantity > 1 ? ` × ${line.quantity}` : ''}</span><span>{money(line.subtotal)}</span></div>)}</div><div className="bill-total"><strong>{tr('合计')}</strong><strong>{money(checkoutSnapshot.quote.total, checkoutSnapshot.quote.currency)}</strong></div><div className="test-notice"><ShoppingBag size={18} /><p><strong>{text('A studio test order', '这是一笔体验订单')}</strong><span>{text('We record this design and price. No payment is taken and nothing is shipped.', '仅记录设计与价格，不会扣款，也不会发货。')}</span></p></div><ActionError message={tr(actionError)} /><button className="primary full-width" disabled={busy} onClick={placeOrder}>{busy ? tr('正在提交…') : tr('确认测试下单')}<ArrowRight size={17} /></button></>}</>}
-      {modal === 'receipt' && receipt && <><div className="receipt-preview">{renderStill(receipt.config, receipt.designName)}</div><div className="saved-celebration"><span className="status-tag"><Check size={13} />{text('Test order confirmed', '体验订单已确认')}</span><h3>{receipt.designName}</h3><p>{text('No payment was taken. Your design is ready to revisit.', '没有产生任何扣款，这份搭配已为你记录。')}</p></div><div className="receipt-details"><div><span>{text('Reference', '订单编号')}</span><code>{receipt.id}</code></div><div><span>{tr('搭配总价')}</span><strong>{money(receipt.quote.total, receipt.quote.currency)}</strong></div><div><span>{tr('创建时间')}</span><span>{new Date(receipt.createdAt).toLocaleString(locale)}</span></div></div><button className="primary full-width" onClick={() => { setModal(null); setSavedTab('orders'); setPage('saved'); }}>{text('View your test orders', '查看我的体验订单')}<ArrowRight size={16} /></button><button className="secondary full-width" onClick={() => { setModal(null); startDesign(receipt.config, receipt.designName); }}>{text('Keep working on this design', '继续编辑这份搭配')}</button></>}
+      {modal === 'checkout' && <>{!checkoutSnapshot ? <div className="review-loading">{busy && <span className="spinner" />}<p>{busy ? text('Checking the pieces and price…', '正在核对配件与明细…') : text('We could not load the details.', '暂时无法读取搭配明细。')}</p><ActionError message={tr(actionError)} />{!busy && <button className="secondary" onClick={() => void review(reviewTarget.current?.config, reviewTarget.current?.name)}>{tr('重试')}</button>}</div> : <>
+        <p className="modal-subtitle">{text('Every piece, accounted for. Take a moment to review.', '每一件小物都列在这里，确认后再记录你的搭配。')}</p><div className="checkout-summary"><div className="mini-preview">{renderStill(checkoutSnapshot.config, checkoutSnapshot.name)}</div><div><span className="eyebrow">YOUR LITTLE ONE</span><h3>{checkoutSnapshot.name}</h3><p>{catalog.templates.find(item => item.id === checkoutSnapshot.config.templateId)?.subtitle}</p></div></div><div className="bill-lines">{checkoutSnapshot.quote.lines.map((line, index) => <div key={`${line.id}-${index}`}><span>{tr(line.name)}{line.quantity > 1 ? ` × ${line.quantity}` : ''}</span><span>{money(line.subtotal)}</span></div>)}</div><div className="bill-total"><strong>{tr('合计')}</strong><strong>{money(checkoutSnapshot.quote.total, checkoutSnapshot.quote.currency)}</strong></div>
+        {amazonPayStatus?.configured ? <AmazonPayButton key={checkoutSnapshot.key} request={{ designName: checkoutSnapshot.name, config: checkoutSnapshot.config, idempotencyKey: `amazon-pay-${checkoutSnapshot.key}` }} disabled={busy} language={language} onStart={keepCheckoutDraft} onPrepared={order => { setCheckoutSnapshot(previous => previous ? { ...previous, quote: order.quote } : previous); setOrders(items => [order, ...items.filter(item => item.id !== order.id)]); }} onBusy={value => { mutating.current = value; setBusy(value); }} /> : <div className="amazon-pay-option amazon-pay-unavailable"><div className="payment-option-heading"><strong>Amazon Pay</strong><span>{text('SANDBOX', '沙盒测试')}</span></div><p role="status">{amazonPayStatus ? text('Amazon Pay sandbox is being set up.', 'Amazon Pay 沙盒正在配置中。') : text('Checking Amazon Pay availability…', '正在检查 Amazon Pay 是否可用…')}</p></div>}
+        <div className="test-notice"><ShoppingBag size={18} /><p><strong>{text('Or record a studio test order', '也可以记录一笔体验订单')}</strong><span>{text('Save this design and price without opening a payment service. No payment or shipping.', '直接记录设计与价格，不会扣款或发货。')}</span></p></div><ActionError message={tr(actionError)} /><button className="primary full-width" disabled={busy} onClick={placeOrder}>{busy ? tr('正在提交…') : tr('确认测试下单')}<ArrowRight size={17} /></button>
+      </>}</>}
+      {modal === 'payment' && <><div className="review-loading" role={busy ? 'status' : undefined}>{busy && <span className="spinner" />}<p>{busy ? text('Verifying your sandbox payment with Amazon Pay…', '正在向 Amazon Pay 核验沙盒付款…') : text('No completed sandbox payment has been confirmed.', '尚未确认沙盒付款完成。')}</p></div><ActionError message={actionError} />{!busy && <>{amazonReturn?.orderId && <button className="primary full-width" onClick={() => void verifyAmazonPayment()}>{text('Check payment again', '重新核验支付')}<RotateCcw size={16} /></button>}<button className="secondary full-width" onClick={() => { rememberPaymentReturn(null); setAmazonReturn(null); closeModal(); }}>{text('Continue my draft', '继续当前草稿')}</button></>}<p className="payment-return-note">{text('Sandbox only · No real charge or shipping. Your design is kept on this browser.', '仅沙盒测试 · 不会真实扣款或发货。搭配已在本浏览器保留。')}</p></>}
+      {modal === 'receipt' && receipt && <><div className="receipt-preview">{renderStill(receipt.config, receipt.designName)}</div><div className="saved-celebration"><span className={`status-tag status-${receipt.status}`}><OrderStatusIcon order={receipt} />{orderStatusText(receipt)}</span><h3>{receipt.designName}</h3><p>{receiptText(receipt)}</p></div><div className="receipt-details"><div><span>{text('Reference', '订单编号')}</span><code>{receipt.id}</code></div>{receipt.payment && <div><span>{text('Checkout', '结账方式')}</span><span>Amazon Pay · {text('Sandbox', '沙盒')}</span></div>}<div><span>{tr('搭配总价')}</span><strong>{money(receipt.quote.total, receipt.quote.currency)}</strong></div><div><span>{tr('创建时间')}</span><span>{new Date(receipt.createdAt).toLocaleString(locale)}</span></div></div>{receipt.status === 'sandbox_pending' && receipt.payment?.checkoutSessionId && <button className="secondary full-width" disabled={busy} onClick={() => void verifyAmazonPayment({ orderId: receipt.id, checkoutSessionId: receipt.payment!.checkoutSessionId! })}>{text('Check payment status', '核验支付状态')}<RotateCcw size={16} /></button>}<button className="primary full-width" onClick={() => { setModal(null); setSavedTab('orders'); setPage('saved'); }}>{text('View your test orders', '查看我的体验订单')}<ArrowRight size={16} /></button><button className="secondary full-width" onClick={() => { setModal(null); startDesign(receipt.config, receipt.designName); }}>{text('Keep working on this design', '继续编辑这份搭配')}</button></>}
       {modal === 'delete' && deleteTarget && <><p className="modal-subtitle">{text('This removes the saved design from your collection. An open draft and existing test orders are kept.', '这会从收藏中删除保存的作品。当前草稿和已有体验订单仍会保留。')}</p><div className="checkout-summary"><div className="mini-preview">{renderStill(deleteTarget.config, deleteTarget.name)}</div><h3>{deleteTarget.name}</h3></div><ActionError message={tr(actionError)} /><button className="danger-button full-width" disabled={busy} onClick={remove}>{busy ? text('Removing…', '正在删除…') : text('Remove saved design', '删除保存的作品')}</button><button className="secondary full-width" disabled={busy} onClick={closeModal}>{text('Keep this favorite', '保留这件喜欢')}</button></>}
-      {modal === 'help' && <><p className="modal-subtitle">{text('A thoughtful little object, made your way.', '用喜欢的小物，组成一件属于自己的包挂。')}</p><div className="help-steps">{[[text('Start with a pairing', '从一组搭配开始'), text('Choose a curated design, describe an idea to your stylist, or explore a base in the studio.', '选择精选搭配、告诉灵感搭档你的想法，或在工作室挑选基础样式。')], [text('Follow the little details', '认真挑选每个细节'), text('Choose a position to replace a piece. Lock favorites, explore finishes, and rotate or try your design on a bag.', '选择位置替换配件，锁定喜欢的部分，调整配色，再旋转或试挂包型。')], [text('Keep what you love', '收藏这份喜欢'), text('Your working draft stays on this browser. Save a named design to your collection or review a test order.', '当前草稿会在本浏览器保留。命名后保存到收藏，或查看明细并创建体验订单。')]].map(([title, description], index) => <div key={title}><span>0{index + 1}</span><p><strong>{title}</strong><small>{description}</small></p></div>)}</div><div className="test-notice"><ShoppingBag size={18} /><p><strong>{text('An interactive studio preview', '互动创作体验版')}</strong><span>{text('Models, materials, dimensions and prices are illustrative. Orders involve no payment or shipping.', '模型、材质、尺寸与价格为设计示意。订单不会产生扣款或发货。')}</span></p></div><button className="primary full-width" onClick={closeModal}>{text('Back to creating', '继续我的创作')}<ArrowRight size={16} /></button></>}
+      {modal === 'help' && <><p className="modal-subtitle">{text('A thoughtful little object, made your way.', '用喜欢的小物，组成一件属于自己的包挂。')}</p><div className="help-steps">{[[text('Start with a pairing', '从一组搭配开始'), text('Choose a curated design, describe an idea to your stylist, or explore a base in the studio.', '选择精选搭配、告诉灵感搭档你的想法，或在工作室挑选基础样式。')], [text('Follow the little details', '认真挑选每个细节'), text('Choose a position to replace a piece. Lock favorites, explore finishes, and rotate or try your design on a bag.', '选择位置替换配件，锁定喜欢的部分，调整配色，再旋转或试挂包型。')], [text('Keep what you love', '收藏这份喜欢'), text('Your working draft stays on this browser. Save a named design, record a test order, or try Amazon Pay sandbox when available.', '当前草稿会在本浏览器保留。命名后保存到收藏、记录体验订单，或体验可用的 Amazon Pay 沙盒结账。')]].map(([title, description], index) => <div key={title}><span>0{index + 1}</span><p><strong>{title}</strong><small>{description}</small></p></div>)}</div><div className="test-notice"><ShoppingBag size={18} /><p><strong>{text('An interactive studio preview', '互动创作体验版')}</strong><span>{text('Models, materials, dimensions and prices are illustrative. Test orders and sandbox checkout involve no real charge or shipping.', '模型、材质、尺寸与价格为设计示意。体验订单和沙盒结账不会真实扣款或发货。')}</span></p></div><button className="primary full-width" onClick={closeModal}>{text('Back to creating', '继续我的创作')}<ArrowRight size={16} /></button></>}
     </Modal>}
   </div>;
 }
@@ -342,6 +416,12 @@ function PartThumbnail({ part, metalTone }: { part: Part; metalTone: 'gold' | 's
 }
 function Logo({ small = false }: { small?: boolean }) {
   return <span className={`logo ${small ? 'small' : ''}`}><svg width="29" height="29" viewBox="0 0 36 36" aria-hidden="true"><path d="M18 5C8-4-4 10 7 20L18 30 29 20C40 10 28-4 18 5Z" transform="translate(0 3)" fill="none" stroke="currentColor" strokeWidth="2.2" /><path d="M18 9C11 12 10 19 18 24C26 19 25 12 18 9Z" fill="none" stroke="currentColor" strokeWidth="2.2" /></svg><span>loop<span className="logo-dot">.</span></span></span>;
+}
+function OrderStatusIcon({ order }: { order: Order }) {
+  if (order.status === 'sandbox_pending') return <Clock3 size={13} />;
+  if (order.status === 'sandbox_failed') return <CircleAlert size={13} />;
+  if (order.status === 'sandbox_canceled') return <Minus size={13} />;
+  return <Check size={13} />;
 }
 function ActionError({ message }: { message: string }) { return message ? <p role="alert" className="error-message">{message}</p> : null; }
 function EmptyState({ title, text, onAction }: { title: string; text: string; onAction: () => void }) {

@@ -19,6 +19,7 @@
     "mcp:desktop-check": "node --import tsx scripts/mcp-desktop-check.mjs"
   },
   "dependencies": {
+    "@amazonpay/amazon-pay-api-sdk-nodejs": "2.3.6",
     "@modelcontextprotocol/ext-apps": "^1.7.5",
     "@modelcontextprotocol/sdk": "1.32.1",
     "@react-three/drei": "10.7.9",

@@ -11,7 +11,7 @@ const [major, minor] = process.versions.node.split('.').map(Number);
 check(major > 22 || (major === 22 && minor >= 13), `Node ${process.versions.node}; required >=22.13, recommended 24`);
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 info(`Package manager: ${pkg.packageManager}; platform: ${process.platform}/${process.arch}`);
-for (const dependency of ['tsx', 'vite', 'express', '@modelcontextprotocol/sdk', '@modelcontextprotocol/ext-apps']) {
+for (const dependency of ['tsx', 'vite', 'express', '@modelcontextprotocol/sdk', '@modelcontextprotocol/ext-apps', '@amazonpay/amazon-pay-api-sdk-nodejs']) {
   try { import.meta.resolve(dependency); check(true, `${dependency} installed`); }
   catch { check(false, `${dependency} missing; run pnpm install --frozen-lockfile`); }
 }
@@ -22,6 +22,20 @@ check(cloudUrl === cloudKey, 'SUPABASE_URL and SUPABASE_SECRET_KEY must both be 
 info(`Storage configuration: ${cloudUrl && cloudKey ? 'Supabase (connectivity not yet checked)' : 'local SQLite'}`);
 info(`Website AI key: ${process.env.OPENAI_API_KEY?.trim() ? 'configured (not verified)' : 'absent; manual studio and ChatGPT catalog/preview flow still work'}`);
 info(`Website model: ${process.env.OPENAI_MODEL?.trim() ? 'overridden in OPENAI_MODEL; see your private .env' : 'gpt-4.1-mini (default)'}`);
+const amazonNames = ['AMAZON_PAY_MERCHANT_ID', 'AMAZON_PAY_STORE_ID', 'AMAZON_PAY_PUBLIC_KEY_ID', 'AMAZON_PAY_BASE_URL'];
+const amazonPresent = amazonNames.some(name => process.env[name]?.trim()) || !!process.env.AMAZON_PAY_PRIVATE_KEY?.trim() || !!process.env.AMAZON_PAY_PRIVATE_KEY_PATH?.trim();
+if (amazonPresent) {
+  for (const name of amazonNames) check(!!process.env[name]?.trim(), `${name} is set (value private)`);
+  check(/^SANDBOX-[A-Za-z0-9]+$/.test(process.env.AMAZON_PAY_PUBLIC_KEY_ID?.trim() ?? ''), 'Amazon Pay public key belongs to Sandbox');
+  check(!!process.env.AMAZON_PAY_PRIVATE_KEY?.trim() || !!process.env.AMAZON_PAY_PRIVATE_KEY_PATH?.trim(), 'Amazon Pay private key or file path is set (value private)');
+  let validOrigin = false;
+  try {
+    const url = new URL(process.env.AMAZON_PAY_BASE_URL);
+    validOrigin = !url.username && !url.password && !url.search && !url.hash && url.pathname === '/' && (url.protocol === 'https:' || (url.protocol === 'http:' && url.hostname === 'localhost'));
+  } catch { /* Report without echoing the value. */ }
+  check(validOrigin, 'Amazon Pay return origin uses HTTPS or http://localhost');
+  info('Amazon Pay US Sandbox settings present; actual API authorization and buyer checkout still require verification');
+} else info('Amazon Pay US Sandbox not configured; ordinary test orders remain available');
 if (process.env.OPENAI_MODEL !== undefined) check(!!process.env.OPENAI_MODEL.trim(), 'OPENAI_MODEL must not be blank when set');
 for (const key of ['PORT', 'CHATGPT_PORT']) {
   if (process.env[key]) { const port = Number(process.env[key]); check(Number.isInteger(port) && port >= (key === 'CHATGPT_PORT' ? 1024 : 1) && port <= 65535, `${key} has a valid port`); }
@@ -43,12 +57,12 @@ if (process.argv[2] && process.argv[2] !== '--url') throw new Error('Usage: pnpm
 if (process.argv[2] === '--url') {
   const base = new URL(process.argv[3]);
   if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password || base.search || base.hash) throw new Error('Use a plain HTTP(S) base URL without credentials or query parameters.');
-  for (const path of ['/api/health', '/api/catalog', '/api/ai/status']) {
+  for (const path of ['/api/health', '/api/catalog', '/api/ai/status', '/api/payments/amazon-pay/status']) {
     try {
       const response = await fetch(new URL(path, base), { signal: AbortSignal.timeout(8000), redirect: 'error' });
       const data = await response.json();
       const valid = response.ok && (path.endsWith('health') ? data.status === 'ok' : path.endsWith('catalog') ? Array.isArray(data.templates) && Array.isArray(data.parts) : typeof data.configured === 'boolean');
-      check(valid, `${path}: HTTP ${response.status}${path.endsWith('status') && valid ? `; AI configured=${data.configured}` : ''}`);
+      check(valid, `${path}: HTTP ${response.status}${path.endsWith('status') && valid ? `; configured=${data.configured}` : ''}`);
     } catch { check(false, `${path}: could not read a valid response`); }
   }
 }

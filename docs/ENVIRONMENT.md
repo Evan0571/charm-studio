@@ -1,6 +1,6 @@
 # 环境变量、密钥与模型
 
-配置来源以代码为准：`server/stylist.ts`、`server/storage.ts`、`server/mcp/auth.ts`、`server/index.ts`、`server/chatgpt.ts`、`scripts/chatgpt-connect.mjs`。本文件不包含实际凭据。
+配置来源以代码为准：`server/stylist.ts`、`server/storage.ts`、`server/amazon-pay.ts`、`server/mcp/auth.ts`、`server/index.ts`、`server/chatgpt.ts`、`scripts/chatgpt-connect.mjs`。本文件不包含实际凭据。
 
 ## 配置规则
 
@@ -19,6 +19,12 @@
 | `SUPABASE_URL` | 可不设置 | 项目的 HTTPS API URL，须与服务端 Key 来自同一项目 |
 | `SUPABASE_SECRET_KEY` | 可不设置 | Supabase 服务端 Secret Key 或 legacy service_role Key；必须与 URL 同时存在 |
 | `SQLITE_PATH` | `.data/charm-studio.sqlite` | 没有 Supabase 时使用；目录自动创建；相对路径以项目根目录为基准 |
+| `AMAZON_PAY_MERCHANT_ID` | 沙盒付款必需 | Amazon Pay 美国区商家 ID |
+| `AMAZON_PAY_STORE_ID` | 沙盒付款必需 | Integration Central 对应的 Store ID |
+| `AMAZON_PAY_PUBLIC_KEY_ID` | 沙盒付款必需 | 必须以 `SANDBOX-` 开头；此接入拒绝 Live 或无环境前缀的旧 Key |
+| `AMAZON_PAY_PRIVATE_KEY_PATH` | 与 inline Key 二选一 | 本地下载的 RSA PEM 私钥文件路径；不要放进 Git |
+| `AMAZON_PAY_PRIVATE_KEY` | 与文件路径二选一 | 部署环境中的 RSA PEM 私钥，支持实际换行或 `\n`；存在时优先于文件路径 |
+| `AMAZON_PAY_BASE_URL` | 沙盒付款必需 | 付款返回的本站 origin，必须为 HTTPS 或 `http://localhost:端口`，不能带路径、query、hash 或用户名密码 |
 | `CHATGPT_PORT` | `3004` | `pnpm chatgpt:connect` 的专用本地端口；可在 `.env` 或 shell 设置，范围 1024–65535 |
 | `CLOUDFLARED_BIN` | PATH 中 `cloudflared` | 可设绝对路径；未设置时也查找 `.data/bin/cloudflared`（Windows 为 `cloudflared.exe`） |
 | `MCP_PUBLIC_URL` | 普通本地模式不设置 | 固定部署时的完整 `https://域名/mcp`；不能含用户名、密码、query 或 fragment |
@@ -70,6 +76,49 @@ SUPABASE_SECRET_KEY=在此填入该项目的服务端密钥
 ```
 
 [Supabase 官方 Key 说明](https://supabase.com/docs/guides/getting-started/api-keys)区分客户端 publishable / anon 与服务端 secret / service_role。本项目需要后者，但绝不把它发送到浏览器。API 的访客隔离由项目后端完成，当前没有 Supabase Auth 用户登录。
+
+## Amazon Pay 沙盒演示
+
+当前接入固定为美国区、USD、`PayOnly` 单次 `AuthorizeWithCapture`，使用官方 SDK 与付款按钮，金额始终来自服务器报价快照。所有交易在 Sandbox 中完成，不真实扣款或发货；真实实物交易需要另行实现 `PayAndShip` 地址和履约流程。本轮不扩展 MCP 卡片付款，卡片原有测试订单流程仍可使用。
+
+1. 从[美国区仅沙盒开发者注册入口](https://payments.amazon.com/register?isSandbox=true&locale=en_US&source=APDW)登录或申请 Amazon Pay Sandbox。正确登录返回路径包含 `/mario/amazon-pay/sandbox-registration/`；Seller Central 域名本身是正常的。此演示不需要开 Amazon 店铺或订阅 Professional 卖家计划。仅创建 Amazon 登录账号或看到申请已提交，并不能证明沙盒已经可用。
+2. 打开 [Integration Central](https://sellercentral.amazon.com/gp/pyop/seller/integrationcentral/)。账号／市场选择器可能默认选择 **Amazon.com**，继而导向卖家开店、问卷或订阅页面；不要沿该流程继续。点击 **Pick a different merchant or marketplace**，展开对应账号并选择 **Amazon Pay (Sandbox View)**。以 Integration Central 显示 **You are in sandbox view** 为进入沙盒控制台的依据。
+3. 选择 **Self-developed** 与 **One-time Payments, Single Authorization** 并获取指引。首次配置可能要求先 **Add Store ID**，才能继续创建 API keys。填写应用／店铺名称（例如 `LOOP Sandbox`）、沙盒演示描述、Privacy policy URL、Allowed JavaScript origins 和实际可收信的 Customer support email；不要为客服邮箱编造账号。此处创建的是 Amazon Pay 应用 Store ID，不是 Amazon 零售店铺。
+4. Store ID 创建后记录 Merchant ID 和 Store ID，再在 **API keys → Create keys** 使用 **Generate API credentials**，保存 Public Key ID 和自动下载的私钥 `.pem`。确认仍在 Sandbox View；沙盒 Public Key ID 应以 `SANDBOX-` 开头。私钥只保存到本机配置或部署环境。
+5. 在 **Integration → Test Accounts** 创建沙盒买家账号，使用虚拟支付方式。商家登录账号与测试买家用途不同。
+6. 在已有 `.env` 中补充以下变量，重启 `pnpm dev`。`AMAZON_PAY_BASE_URL` 使用本次实际结账的站点 origin；改域名后同步更新 Store 配置与此变量。部署到 Vercel 时用服务端环境变量设置 inline PEM；本机文件路径不能代替部署环境中的私钥。
+
+### Store 控制台的 HTTPS 验证
+
+CV2 沙盒与本项目后端允许 `http://localhost:端口` 用于本地测试，但这不代表 **Add Store ID** 表单会接受它。当前控制台保存 Store ID 时会校验 HTTPS，并拒绝 HTTP localhost 的 JavaScript origin 和 return URL。不要将未配置 HTTPS 的 localhost 改写为 `https://localhost` 冒充可访问的站点；使用实际部署并可访问的 HTTPS 地址。
+
+例如部署站点为 `https://loop-charm-studio.vercel.app/` 时，使用以下地址：
+
+| Store 字段 | 地址 |
+| --- | --- |
+| Allowed JavaScript origins | `https://loop-charm-studio.vercel.app` |
+| Allowed return URLs（可选） | `https://loop-charm-studio.vercel.app/` |
+| Privacy policy URL | `https://loop-charm-studio.vercel.app/privacy.html` |
+
+隐私说明源码为 `public/privacy.html`，构建后应在本站 `/privacy.html` 直接显示 **Privacy notice — LOOP Sandbox**。填写前先核对线上已经部署对应版本：隐私 URL 必须返回真实隐私说明，而不是 SPA fallback 的工作室首页；`/api/payments/amazon-pay/status` 必须返回 HTTP 200 和 JSON（环境为 `sandbox`），而不是 404 或 HTML。未设置密钥时 `configured:false` 正常；这一步只确认最新页面和服务端支付路由已上线，不能证明实际支付完成。确认这些地址可用后再保存 Store 配置并继续生成密钥。
+
+```dotenv
+AMAZON_PAY_MERCHANT_ID=你的商家ID
+AMAZON_PAY_STORE_ID=你的StoreID
+AMAZON_PAY_PUBLIC_KEY_ID=SANDBOX-你的公钥ID
+AMAZON_PAY_PRIVATE_KEY_PATH=/绝对路径/你的私钥.pem
+AMAZON_PAY_BASE_URL=https://loop-charm-studio.vercel.app
+```
+
+已有 Supabase 项目需要应用 `supabase/migrations/20261013173649_loop_amazon_pay_sandbox.sql`；全新项目使用完整 `supabase/schema.sql`。迁移兼容旧测试订单，仅允许服务端更新支付状态和支付字段。SQLite 自动兼容。
+
+访问 `/api/payments/amazon-pay/status` 可查看 `{configured:true,environment:"sandbox"}`。`configured` 只证明本地配置与 RSA Key 格式有效，账号/API 授权要以实际沙盒结账验证。未配置时网站仍能编辑、保存和创建普通测试订单。
+
+演示路径：设计挂件 → 确认配件和美元明细 → 选择 Amazon Pay 沙盒 → 点击官方按钮 → 用测试买家登录并付款 → 返回 LOOP。后端重新读取 Amazon 会话和 Charge，校验订单关联、美元金额、Sandbox 环境及 `Captured` 状态后才显示沙盒支付成功。关闭付款页、取消、拒绝、处理中或网络错误不会被当作已支付；已绑定的待核验订单可在订单历史中重新核验，不会重建付款。
+
+沙盒测试至少包括成功支付、取消/拒绝、返回后刷新、重复点击和付款成功后连接中断再核验。单元/API 测试使用可注入 provider；SDK 本地签名测试不能代替真实 Amazon 买家结账。
+
+官方依据：[注册与 API Key](https://developer.amazon.com/docs/amazon-pay-checkout/get-set-up-for-integration.html)、[End of Checkout](https://developer.amazon.com/docs/amazon-pay-checkout/end-of-checkout.html)、[核验并完成结账](https://developer.amazon.com/docs/amazon-pay-checkout/verify-and-complete-checkout.html)、[沙盒买家](https://developer.amazon.com/docs/amazon-pay-checkout/amazon-pay-sandbox-accounts.html)。
 
 ## 默认模型是什么，能否换模型
 

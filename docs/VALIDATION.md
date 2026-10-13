@@ -2,6 +2,18 @@
 
 验证日期：2026 年 10 月 8 日。
 
+## 2026-10-13 — Amazon Pay 美国区沙盒接入
+
+- 网页提供官方 Amazon Pay 按钮与 `PayOnly` 单次结账，固定 USD/Sandbox。服务端签名绑定订单和报价，回跳后核验会话、单次授权、环境、订单关联、Charge 与实际 Captured 金额，再保存 `sandbox_paid`。
+- `pnpm test`：146 / 146 通过，其中支付 provider/API/storage/回跳单测 54 项。覆盖跨访客隔离、并发会话竞争、幂等、金额与环境篡改、付款后读库/落库失败恢复、拒绝/取消原因和待核验状态。官方 SDK 的本地 PSS V2 签名验签通过；测试没有向 Amazon 发起付款请求。
+- `scripts/amazon-pay-browser-check.mjs`：8 组检查通过，页面错误 0；使用明确的 mock provider/SDK 与临时 SQLite。覆盖未配置时体验订单、SDK 加载与错误重试、准备报价同步、待核验后重试、失败/取消、刷新恢复和缺少返回参数；390px 弹窗可滚动。截图在 `tmp/amazon-pay-ui/`，其中已支付截图属于测试替身。
+- 已向 `charm-studio` Supabase 应用 `loop_amazon_pay_sandbox` 迁移。服务端仅可更新 status/payment，不可修改 quote；anon/authenticated 无表读取权限，RLS 保持开启。使用 service_role 事务验证空会话绑定、竞争会话不覆盖、付款状态保存及 paid 不降级；验证事务已回滚，没有残留测试订单。实际 Supabase 适配器健康与新增字段读取通过。
+- 本地配置检查通过；Amazon Pay 仍为 `configured:false`。实际沙盒商户凭据、测试买家及 Amazon 托管结账端到端验收待完成。当前仅接网页付款，MCP 卡片仍使用原有体验下单流程。
+- TypeScript、最终网页生产构建与 MCP UI 构建通过。已有 3000 端口的服务器仍提供旧接口，本任务在 `http://localhost:3075` 启动当前源码的生产预览；健康、目录、AI 状态和 Amazon Pay 沙盒状态接口检查通过。使用真实 Supabase 的未配置结账页已截图验证，没有创建订单或调用 Amazon。实际结账时 `AMAZON_PAY_BASE_URL` 必须与使用的端口/origin 一致。
+- 部署分支已整合到最新 `master` 基线 `2e4aa86`，保留 `api/index.mjs`、`build:server`、Vercel 路由及共享 OAuth 实现。独立 worktree 的 frozen-lockfile 安装、146 项测试、完整构建（含 `dist-server/app.mjs`）、无网络云入口装载与离线 MCP 桌面检查全部通过。另用内存生成的测试 RSA key 验证构建后的支付 status 为 HTTP 200/Sandbox、外部 Amazon SDK 可装载，且 `dist/privacy.html` 与源码完全一致；没有访问 Amazon API，也不代表真实商户授权或支付验收通过。
+
+官方与配置依据见 [环境变量说明](ENVIRONMENT.md#amazon-pay-沙盒演示)。下方记录均为先前版本，不代表本次支付状态。
+
 ## 当前交接版 — 全新副本部署验证
 
 本节对应 README / SETUP / AI_HANDOFF 描述的交接流程。下方 0.2.1、0.2、0.1 均为历史记录，其中人民币报价、测试数量和「暂无 MCP」等描述不代表当前能力。

@@ -102,7 +102,7 @@ export function createLoopMcpServer(context: { storage: Storage; service: Studio
     return { ...await service.createOrder(owner, ticket.data), testOrdersOnly: true, notice: '测试订单已确认，未扣款，不会发货。', studioUrl };
   }));
   server.registerTool('loop_list_orders', {
-    description: 'List this connected user\'s persisted test orders and their price snapshots, newest first. All orders have status test_confirmed; there is no shipping tracking.',
+    description: 'List this connected user\'s persisted demo orders and their price snapshots, newest first. Plain test orders have status test_confirmed; website Amazon Pay sandbox orders include their sandbox payment status. No real payment or shipping tracking.',
     inputSchema: z.strictObject(pageSchema), annotations: readOnly,
   }, ({ offset, limit }) => result(async () => { const items = await storage.listOrders(owner); return { orders: items.slice(offset, offset + limit), total: items.length, testOrdersOnly: true }; }));
   registerAppTool(server, 'loop_preview_design', {

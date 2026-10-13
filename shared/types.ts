@@ -9,4 +9,7 @@ export interface Catalog { templates: Template[]; parts: Part[]; connectors: Con
 export interface DesignConfig { templateId: TemplateId; connectorId: string; cordColor: string; metalTone: MetalTone; slots: Record<string,string|null>; lockedSlots: string[]; }
 export interface Quote { lines: {id:string;name:string;quantity:number;unitPrice:number;subtotal:number}[]; total: number; currency:'USD' | 'CNY'; }
 export interface SavedDesign { id:string; name:string; config:DesignConfig; createdAt:string; updatedAt:string; }
-export interface Order { id:string; designName:string; config:DesignConfig; quote:Quote; status:'test_confirmed'; createdAt:string; }
+export type OrderStatus = 'test_confirmed' | 'sandbox_pending' | 'sandbox_paid' | 'sandbox_failed' | 'sandbox_canceled';
+export type AmazonPayOrderStatus = 'sandbox_paid' | 'sandbox_failed' | 'sandbox_canceled';
+export interface AmazonPayPayment { provider:'amazon_pay'; environment:'sandbox'; checkoutSessionId?:string; chargeId?:string; updatedAt:string; }
+export interface Order { id:string; designName:string; config:DesignConfig; quote:Quote; status:OrderStatus; createdAt:string; payment?:AmazonPayPayment; }
