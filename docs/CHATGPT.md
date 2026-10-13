@@ -137,6 +137,8 @@ pnpm chatgpt:connect
 
 先停止上一份 helper 再重启，避免端口冲突。只改卡片时可单独 `pnpm build:mcp-ui`，但既有 ChatGPT 卡片可能缓存旧资源；在 ChatGPT 刷新插件工具 / 连接并生成新预览。不要继续把旧临时域名发给队友作为永久部署地址。
 
+helper 内的 Node watch 进程会在后端源码变更时重载服务，保持当前隧道地址与已有 OAuth 注册。更新卡片后仍需刷新工具，并在新对话验证。不要手动终止 helper 或其隧道来重载后端，否则临时域名会失效。
+
 [Quick Tunnels](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/)用于测试，无稳定运行保证，也不支持 SSE。LOOP 使用 stateless Streamable HTTP 的 JSON 响应，不依赖独立 SSE 长连接。
 
 ## 8. 排错顺序

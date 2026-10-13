@@ -62,14 +62,18 @@ try {
     let log = '';
     const onOutput = chunk => {
       log = (log + chunk.toString()).slice(-12000);
-      const match = log.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
+      // An API failure can mention https://api.trycloudflare.com; that is
+      // not the newly created tunnel. Accept only generated tunnel names.
+      const match = log.match(/https:\/\/[a-z0-9]+(?:-[a-z0-9]+)+\.trycloudflare\.com/);
       if (match) { clearTimeout(timer); resolveOrigin(match[0]); }
     };
     tunnel.stdout.on('data', onOutput); tunnel.stderr.on('data', onOutput);
     tunnel.once('error', error => { clearTimeout(timer); reject(new Error(`Install cloudflared first, or set CLOUDFLARED_BIN. ${error.code || ''}`)); });
     tunnel.once('exit', code => { clearTimeout(timer); reject(new Error(`HTTPS tunnel stopped (${code}).`)); });
   });
-  server = spawn(process.execPath, ['--import', 'tsx', 'server/chatgpt.ts'], {
+  // The watch supervisor survives backend reloads, keeping the same HTTPS
+  // tunnel and persisted OAuth registration while developing the connector.
+  server = spawn(process.execPath, ['--watch', '--watch-preserve-output', '--import', 'tsx', 'server/chatgpt.ts'], {
     env: { ...process.env, NODE_ENV: 'production', PORT: String(port), MCP_PUBLIC_URL: `${origin}/mcp`, MCP_TOKEN_SECRET: readFileSync(secretPath, 'utf8').trim(), COOKIE_SECURE: 'true' }, stdio: ['ignore', 'inherit', 'inherit'],
   });
   let ready = false, diagnostic = '';
