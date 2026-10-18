@@ -240,7 +240,7 @@ test('MCP HTTP validates Host, Origin, content type, protocol version, JSON size
     assert.equal(await rawPost(`${f.base}/mcp`, { ...headers, Host: 'evil.example' }, body), 403);
     assert.equal(await rawPost(`${f.base}/api/mcp/token`, { ...headers, Host: 'evil.example' }, '{}'), 403);
     assert.equal((await fetch(`${f.base}/api/mcp/token`, { method: 'POST', headers: { ...headers, Origin: 'null' }, body: '{}' })).status, 403);
-    assert.equal((await fetch(`${f.base}/mcp`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: headers.Accept }, body })).status, 401);
+    assert.equal((await fetch(`${f.base}/mcp`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: headers.Accept }, body })).status, 200, 'Unlinked clients can discover OAuth tool declarations');
     assert.equal((await fetch(`${f.base}/mcp`, { method: 'POST', headers: { ...headers, 'Content-Type': 'text/plain' }, body })).status, 415);
     assert.equal((await fetch(`${f.base}/mcp`, { method: 'POST', headers: { ...headers, 'MCP-Protocol-Version': '1900-01-01' }, body })).status, 400);
     assert.equal((await fetch(`${f.base}/mcp`, { method: 'POST', headers, body: '{' })).status, 400);

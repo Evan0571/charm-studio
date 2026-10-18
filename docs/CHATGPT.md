@@ -10,6 +10,17 @@ The public website and MCP server run independently of the author's computer. A 
 4. Create/install the personal connection and complete **Continue to LOOP** → **Authorize connection** in the browser.
 5. Start a conversation and select `@LOOP`.
 
+Some ChatGPT surfaces request OAuth only on the first tool call. If the plugin
+shows **Try now** before linking, open a new conversation, select LOOP, and ask
+it to call `loop_get_catalog`. The host should offer its connection flow, which
+opens LOOP's **连接你的 LOOP 工作台** page. Choose **授权连接**, return to ChatGPT,
+and retry the tool. Each person completes this flow in their own browser.
+
+After a server update, refresh the custom connection's tool metadata and start
+a new conversation. A chat reply saying “authorization required,” or a button
+that merely resends a prompt, is not evidence that OAuth has started; check for
+the actual host connection flow or LOOP consent page.
+
 [Official custom MCP setup](https://developers.openai.com/api/docs/guides/custom-mcp-server) and [OAuth guidance](https://developers.openai.com/plugins/build/auth). This custom connection is separate from a public plugin-directory listing; directory publication has its own [review/submission process](https://developers.openai.com/plugins/deploy/submission).
 
 Try:
@@ -38,7 +49,12 @@ The card's **test checkout** creates test orders only. Amazon Pay Sandbox is a s
 - The MCP Apps resource `ui://loop/design-v5.html`, interactive 3D, visual selection and locks.
 - Saved design/quote/order operations in the authorized workspace.
 
-An anonymous browser GET to `/mcp` returns **401**, with the discovery URL in `WWW-Authenticate`. This is expected. Authorized GET/DELETE returns **405** because this stateless implementation has no separate long-lived event stream or deletable transport session; normal requests use POST-scoped streams.
+An anonymous browser GET to `/mcp` returns **401**, with the discovery URL in `WWW-Authenticate`. This is expected. Unlinked MCP clients can initialize, ping, and list tool, resource, resource-template, and prompt definitions over POST. Every HTTP tool declares `oauth2` with `loop:studio` in both `securitySchemes` and its `_meta` compatibility mirror. Unlinked or expired tool calls return an MCP error result carrying `_meta["mcp/www_authenticate"]`; no business tool executes before token validation succeeds. Reading resources and executing prompts remain protected. Authorized GET/DELETE returns **405** because this stateless implementation has no separate long-lived event stream or deletable transport session; normal requests use POST-scoped streams. Local stdio retains its separate trusted local identity and does not advertise HTTP OAuth.
+
+`https://loop-charm-studio.vercel.app/authorize` is an OAuth endpoint, not a
+standalone account-linking URL. ChatGPT must supply its registered `client_id`,
+exact redirect URI, `state`, resource, and PKCE challenge. A manually generated
+link for another client cannot link the recipient's ChatGPT connection.
 
 ## Local development tunnel
 

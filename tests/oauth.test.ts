@@ -17,10 +17,10 @@ import { createMcpTokens } from '../server/mcp/auth';
 import { hash } from '../server/studio-service';
 import { createDefaultConfig } from '../shared/catalog';
 
-async function fixture() {
+async function fixture(streamResponses = false) {
   const storage = new SqliteStorage(':memory:');
   let now = Date.now();
-  const app = createApp(storage, { configured: () => false, reply: async () => { throw new Error('No model in OAuth tests'); } }, { secret: 'oauth-test-secret-at-least-32-characters', now: () => now });
+  const app = createApp(storage, { configured: () => false, reply: async () => { throw new Error('No model in OAuth tests'); } }, { secret: 'oauth-test-secret-at-least-32-characters', streamResponses, now: () => now });
   const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const redirect = 'https://chatgpt.com/connector/oauth/test-callback';
@@ -82,6 +82,88 @@ test('OAuth discovery → DCR → consent + PKCE → MCP shares this browser gue
     assert.equal((await fetch(f.base + '/mcp', { headers: { authorization: 'Bearer ' + refreshed.access_token } })).status, 401);
     assert.equal((await f.form('/token', { ...refreshBody, refresh_token: refreshed.refresh_token })).status, 400);
   } finally { await client.close(); await f.close(); }
+});
+
+for (const streaming of [false, true]) test(`first-use OAuth discovers tools, challenges without execution, and resumes after linking (streaming=${streaming})`, async () => {
+  const f = await fixture(streaming);
+  const anonymous = new Client({ name: 'unlinked-host', version: '1' });
+  const linked = new Client({ name: 'linked-host', version: '1' });
+  const refreshed = new Client({ name: 'refreshed-host', version: '1' });
+  try {
+    await anonymous.connect(new StreamableHTTPClientTransport(new URL(f.base + '/mcp')));
+    const sdkTools = (await anonymous.listTools()).tools;
+    // SDK 1.x strips unknown top-level fields while decoding tools. Check the
+    // actual wire descriptor as well as the compatibility mirror it retains.
+    const discovery = await fetch(f.base + '/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 'first-discovery', method: 'tools/list', params: {} }) });
+    assert.equal(discovery.status, 200);
+    const wire = await discovery.text();
+    const tools = JSON.parse(streaming ? wire.split('\n').find(line => line.startsWith('data: '))!.slice(6) : wire).result.tools as Array<(typeof sdkTools)[number] & { securitySchemes: unknown }>;
+    assert.equal(tools.length, 11);
+    for (const tool of tools) {
+      const schemes = [{ type: 'oauth2', scopes: ['loop:studio'] }];
+      assert.deepEqual(tool.securitySchemes, schemes);
+      assert.deepEqual(tool._meta?.securitySchemes, schemes);
+      assert.deepEqual(sdkTools.find(item => item.name === tool.name)?._meta?.securitySchemes, schemes);
+      const blocked = await anonymous.callTool({ name: tool.name, arguments: {} });
+      assert.equal(blocked.isError, true, `${tool.name} must request linking before input validation or execution`);
+      const challenges = blocked._meta?.['mcp/www_authenticate'] as string[];
+      assert.equal(challenges.length, 1);
+      assert.ok(challenges[0].includes(`resource_metadata="${f.base}/.well-known/oauth-protected-resource/mcp"`));
+      assert.match(challenges[0], /error="insufficient_scope"/);
+      assert.match(challenges[0], /error_description="[^"]+"/);
+      assert.equal(blocked.structuredContent, undefined, 'No catalog, private data, quote or checkout token is returned before linking');
+    }
+    const preview = tools.find(tool => tool.name === 'loop_preview_design')!;
+    assert.equal((preview._meta?.ui as { resourceUri: string }).resourceUri, 'ui://loop/design-v5.html');
+    const asset = tools.find(tool => tool.name === 'loop_get_preview_asset')!;
+    assert.deepEqual((asset._meta?.ui as { visibility: string[] }).visibility, ['app']);
+    assert.ok((await anonymous.listResources()).resources.some(resource => resource.uri === 'ui://loop/design-v5.html'));
+    assert.ok((await anonymous.listPrompts()).prompts.some(prompt => prompt.name === 'design-bag-charm'));
+    await anonymous.listResourceTemplates();
+    // Public discovery must not open the resource/prompt execution surfaces.
+    for (const [method, params] of [
+      ['resources/read', { uri: 'loop://catalog' }],
+      ['prompts/get', { name: 'design-bag-charm', arguments: { idea: 'test' } }],
+    ]) {
+      const denied = await fetch(f.base + '/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 'protected-surface', method, params }) });
+      assert.equal(denied.status, 401);
+    }
+    const registration = await f.register();
+    assert.equal(registration.status, 201);
+    const { client_id } = await registration.json();
+    const { code, cookie } = await f.code(client_id);
+    const exchange = await f.exchange(client_id, code);
+    assert.equal(exchange.status, 200);
+    const tokens = await exchange.json();
+    await linked.connect(new StreamableHTTPClientTransport(new URL(f.base + '/mcp'), { requestInit: { headers: { Authorization: 'Bearer ' + tokens.access_token } } }));
+    const designs = (await linked.callTool({ name: 'loop_list_designs', arguments: {} })).structuredContent as { designs: unknown[] };
+    const orders = (await linked.callTool({ name: 'loop_list_orders', arguments: {} })).structuredContent as { orders: unknown[] };
+    assert.deepEqual(designs.designs, [], 'Unlinked save attempts created no drafts');
+    assert.deepEqual(orders.orders, [], 'Unlinked checkout attempts created no orders');
+    const catalog = await linked.callTool({ name: 'loop_get_catalog', arguments: {} });
+    assert.equal(catalog.isError, undefined);
+    assert.equal((catalog.structuredContent as { catalog: { currency: string } }).catalog.currency, 'USD');
+    const rendered = await linked.callTool({ name: 'loop_preview_design', arguments: { name: 'Linked preview', config: createDefaultConfig('hero') } });
+    assert.equal(rendered.isError, undefined);
+    // A linked identity can save, but the same unlinked host still cannot read it.
+    assert.equal((await linked.callTool({ name: 'loop_save_design', arguments: { name: 'Private linked draft', config: createDefaultConfig('hero') } })).isError, undefined);
+    assert.equal((await anonymous.callTool({ name: 'loop_list_designs', arguments: {} })).isError, true);
+    const browserDrafts = await (await fetch(f.base + '/api/designs', { headers: { cookie } })).json();
+    assert.equal(browserDrafts.length, 1);
+    f.advance(60 * 60_000 + 1);
+    const expired = await linked.callTool({ name: 'loop_get_catalog', arguments: {} });
+    assert.equal(expired.isError, true);
+    assert.match(String(expired._meta?.['mcp/www_authenticate']), /error="invalid_token"/);
+    const refresh = await f.form('/token', { client_id, grant_type: 'refresh_token', refresh_token: tokens.refresh_token, resource: f.base + '/mcp' });
+    assert.equal(refresh.status, 200);
+    const renewed = await refresh.json();
+    await refreshed.connect(new StreamableHTTPClientTransport(new URL(f.base + '/mcp'), { requestInit: { headers: { Authorization: 'Bearer ' + renewed.access_token } } }));
+    assert.equal((await refreshed.callTool({ name: 'loop_get_catalog', arguments: {} })).isError, undefined);
+    assert.equal((await f.form('/revoke', { client_id, token: renewed.refresh_token })).status, 200);
+    const revoked = await refreshed.callTool({ name: 'loop_get_catalog', arguments: {} });
+    assert.equal(revoked.isError, true);
+    assert.match(String(revoked._meta?.['mcp/www_authenticate']), /error="invalid_token"/);
+  } finally { await Promise.all([anonymous, linked, refreshed].map(client => client.close())); await f.close(); }
 });
 
 test('OAuth rejects cross-user consent, cross-origin forms, unsafe redirects, wrong verifier/audience and expired requests', async () => {
