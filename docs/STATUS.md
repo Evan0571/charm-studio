@@ -1,58 +1,48 @@
-# 当前进度与交接边界
+# Current project status
 
-交接日期：2026-10-08。具体代码以当前 Git commit 为准；本文件记录能力和验证范围，不记录运行中的临时域名或任何凭据。历史版本验证见 [VALIDATION.md](VALIDATION.md)。
+Updated October 18, 2026. This is the current capability summary; dated evidence and older checks are in [VALIDATION.md](VALIDATION.md).
 
-## 已实现
+## Available
 
-| 模块 | 当前状态 |
+| Area | Implemented behavior |
 | --- | --- |
-| 网站 | 品牌首页、AI 灵感对话、手动工作室、收藏、测试结算 |
-| 语言 | 默认 English，可选简体中文；界面与目录本地化、选择记忆；当前新报价统一 USD，历史 CNY 订单保持原币种 |
-| 3D | 三种挂件结构、14 款配件、三种包型、材质 / 灯光、挂点连接、有限摆动、视角控制、包颜色调整 |
-| 业务后端 | 配置校验、服务端报价、访客隔离、保存 / 重开 / 删除、测试订单与幂等处理 |
-| AI | OpenAI Responses + 严格结构化输出，默认 gpt-4.1-mini，支持续聊和锁定保护 |
-| 存储 | 本地 SQLite 自动初始化；可选 Supabase，健康检查；云故障不静默回退 |
-| MCP | 2025-11-25 / Streamable HTTP，10 个工具、目录资源和提示模板 |
-| OAuth | 动态客户端注册、浏览器授权、PKCE、凭据持久化、刷新 / 撤销 |
-| ChatGPT UI | 对话内预览、服务端价格、3D / 挂包、配件锁定、model context、保存与测试订单确认 |
-| 启动交接 | macOS 一键脚本、跨 shell 生产入口、环境检查命令、完整安装 / 配置 / AI 交接文档 |
+| Website | Landing page, AI stylist, manual design studio, saved designs, review and test checkout |
+| Catalog | Three structures, 14 parts, five cord colors, gold/silver hardware, USD itemized prices |
+| 3D | Original models and materials, rotation, zoom, three bag previews and custom bag colors; bounded motion in the website studio |
+| Conversational design | Catalog-based proposals, revisions, locked-part validation and editable previews |
+| Storage | SQLite locally; Supabase in the hosted deployment; saved designs, test orders and visitor isolation |
+| MCP | Version 2025-11-25, Streamable HTTP; 10 design tools plus one renderer asset tool |
+| Authorization | OAuth discovery, dynamic registration, explicit guest consent, S256 PKCE, refresh rotation and revocation |
+| MCP Apps | Inline 3D card, visual part selection, locks, rename, undo, saved-state feedback and test-order confirmation |
+| Deployment | Fixed Vercel website/API/OAuth/MCP domain, shared OAuth persistence, streamed UI/model delivery |
+| Payments | Separate Amazon Pay US Sandbox website checkout, server-verified amount/ownership/environment/capture status and retry handling |
+| Local desktop | stdio entry with persistent local guest and on-demand MCP assets |
 
-## 已验证与待验证分开看
+## Latest evidence
 
-- 当前本机 `pnpm test`：**54 项通过**，包括业务、API、MCP、OAuth、本地化、美元换算、3D 几何和物理回归；模型调用使用 mock。
-- MCP smoke：真实官方 SDK 客户端、隔离 SQLite、目录 / 保存 / 确认订单流程，不调用真实模型。
-- 本地官方 MCP Apps AppBridge：隔离 iframe + CSP、浏览器 OAuth 跨站回调、锁定上下文、更新同一草稿、取消 / 确认测试订单、3D 资产及窄屏布局已验证。
-- 真实 ChatGPT 网页：作者账号已安装并 OAuth 授权；读取目录、生成此前人民币版本的 ¥96 樱桃 / 木珠 / 珍珠方案、显示卡片、3D 与挂包、锁定樱桃后对话改银色并保留锁定。该账号测试没有写入设计或订单。
-- ChatGPT 实测时开发 UI 显示 CSP off。启用 CSP 的检查来自本地 harness，不宣称已在 ChatGPT 强制 CSP 环境完整验证。
-- 作者机器使用 macOS / Apple Silicon。Windows / Linux 命令与程序路径已按代码整理，**不宣称已经在队友的新电脑或实体 Windows 机器上实测**。
-- Supabase 曾完成云存储健康及写入验证；每个新项目仍要执行 schema 并重新验收。此交接不附带作者云项目密钥。
+- October 18: **173/173 automated tests passed**, using isolated data and mocked model/provider behavior.
+- The pre-documentation code baseline `d508741` passed GitHub CI: tests, complete build, Vercel artifact check, MCP streaming check and desktop stdio check.
+- Hosted health, catalog, AI configuration and Amazon Pay configuration endpoints returned HTTP 200.
+- A live MCP client negotiated **2025-11-25** over **SSE Streamable HTTP**, listed 11 tools, read the catalog, quoted and previewed a design, listed guest records and retrieved the full UI resource.
+- Two real website-backed stylist calls produced a USD 12 cherry/pearl design and a silver revision preserving the locked cherry.
+- Chrome rendered the studio's bag view and the MCP web client's catalog-example 3D preview. Browser MCP initialization/discovery/quote succeeded; the checked 390 px MCP layout had no horizontal overflow.
+- October 13: a real Amazon Pay **Sandbox/Captured** transaction was verified and stored as `sandbox_paid`. This is a historical provider acceptance check, not a new payment performed during the October 18 review.
 
-本次同步的构建 / 全新副本验证结果见 [VALIDATION.md](VALIDATION.md) 顶部。CI 运行结果以 GitHub Actions 对应 commit 为准，不能用旧 commit 的绿色状态替代。
+## Identity and commerce limits
 
-## 数据和模型边界
+Guest cookies identify a browser workspace. There is no verified customer registration, cross-device account recovery, or automatic sharing between unrelated browser/stdio guests. Using the same browser for website and hosted OAuth consent can bind that connection to the same guest workspace.
 
-浏览器访客 Cookie 决定数据归属；不是邮箱账号、团队共享工作台或跨设备登录。不同 hostname、临时域名、浏览器会得到不同身份。SQLite / Supabase 切换不自动搬迁数据。
+Natural-language budget interpretation is model-driven. The server enforces catalog compatibility, locks and authoritative prices; it does not treat a conversational budget as a hard spending cap.
 
-ChatGPT 推理使用其对话模型，标准目录 → 预览路径不使用项目 API Key；独立网站由后端用 `OPENAI_MODEL` 调用 API。ChatGPT 专用服务器关闭额外后端 AI。修改模型需验证兼容性，不能认为任意模型名都能替换。
+MCP confirmation creates a test order. Amazon Pay Sandbox is a separate website payment flow. Neither charges real money, reserves inventory, manufactures goods, or ships. 3D colors, dimensions and attachment fit are illustrative.
 
-当前报价为 USD 样例目录，按原人民币单价 ÷ 7 四舍五入为整数美元，再按明细加总；历史订单保持确认时的价格与币种。所有订单只创建测试记录。自然语言预算不是服务器强制的付款上限。没有真实支付、库存、制造或发货。
+## Remaining validation and production work
 
-## 尚未完成 / 不应对队友承诺的能力
+- Independent second-account ChatGPT OAuth, card interaction, save and confirmation acceptance.
+- Target-host verification of the current card under that host's actual enforced CSP; local strict-CSP checks do not establish every host's behavior.
+- Physical mobile and low-end GPU performance; broad Windows/Linux/desktop-host acceptance.
+- Verified customer accounts, deployment-wide rate limits, operations monitoring, backups and a commerce administration system.
+- Real Alexa+ devices/voice runtime and partner-only tooling are outside the current prototype.
+- Final recording, team review of submission/feedback drafts and the actual Devpost submission. See the [numbered checklist](DEVPOST_CHECKLIST.md).
 
-- 永久公网域名、无人值守稳定运行、自动云部署、生产监控和备份。
-- 注册登录、跨设备恢复、用户账户管理和正式多租户授权。
-- 多副本共享 OAuth / 限流、完整生产级权限运营与订单后台。
-- 真实 Alexa+ 设备、Alexa 原生语音 / UI 或官方 gated SDK 接入。
-- 真实商品支付与履约、精确制造尺寸和材料色彩校准。
-- 全平台 / 实体手机性能验证。3D 首屏资源较大，低端 GPU 仍可能回退或变慢。
-- 比赛最终视频、提交材料、工具反馈、评审访问和最终许可证选择。
-
-几何、视觉和材质仍在打磨；已有几何 / 物理测试并不等于视觉已最终定稿。
-
-## 分享给队友时一起说明
-
-仓库目前私有，先确保队友接受访问邀请。发送仓库和 README / AI_HANDOFF 链接即可；不要一起发送 `.env`、`.data`、Cookie、旧公网域名或构建缓存。
-
-队友可以独立使用 SQLite 和自己的 API Key。若选择共享 Supabase，先明确用哪个项目、由谁管理 Key 和测试记录，但不要误认为共享数据库会自动共享访客草稿。
-
-比赛相关依据及需重新核对的提交要求见 [MCP.md](MCP.md)。个人 ChatGPT 插件可用于当前演示，公开插件发布与正式参赛提交是另外的步骤。
+Automated tests and historical acceptance records are not a claim that every external host or provider was re-tested today.

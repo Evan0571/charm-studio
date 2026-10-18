@@ -1,3 +1,5 @@
+> Historical implementation plan, October 9, 2026. Some machine-specific assumptions and asset-delivery details were superseded. Use [current status](../STATUS.md), [ChatGPT setup](../CHATGPT.md) and [local stdio setup](../DESKTOP_MCP.md) for current behavior.
+
 # Default 3D and visual part picker implementation plan
 
 **Goal:** Open LOOP conversation previews in 3D and let users replace main and accent parts through illustrated selection cards.

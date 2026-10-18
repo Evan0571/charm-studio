@@ -1,3 +1,5 @@
+> Historical implementation plan, October 9, 2026. Some machine-specific assumptions and asset-delivery details were superseded. Use [current status](../STATUS.md), [ChatGPT setup](../CHATGPT.md) and [local stdio setup](../DESKTOP_MCP.md) for current behavior.
+
 # Desktop MCP connection for the verified visual picker
 
 Target: this computer's ChatGPT desktop app. Preserve the accepted default-3D and illustrated main/accent picker source and built assets.

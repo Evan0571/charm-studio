@@ -4,7 +4,7 @@ LOOP turns a bag-charm brief into a catalog-valid design, supports conversationa
 
 ## Use the hosted service and share it
 
-The shared server URL is **https://loop-charm-studio.vercel.app/mcp**, and the website is **https://loop-charm-studio.vercel.app/**. Trying this hosted service does not require GitHub access, Node.js, a local installation, or a tunnel. Each user adds the server in a ChatGPT account/workspace that allows custom MCP connections, selects **OAuth**, leaves the OAuth client ID and secret empty, and completes their own visitor consent. See the [hosted connection steps](CHATGPT.md#使用现有公网服务分享给队友).
+The shared server URL is **https://loop-charm-studio.vercel.app/mcp**, and the website is **https://loop-charm-studio.vercel.app/**. Trying this hosted service does not require GitHub access, Node.js, a local installation, or a tunnel. Each user adds the server in a ChatGPT account/workspace that allows custom MCP connections, selects **OAuth**, leaves the OAuth client ID and secret empty, and completes their own visitor consent. See the [hosted connection steps](CHATGPT.md#hosted-connection).
 
 OAuth binds the connection to the authorizing browser's guest workspace on that domain. It does not create a verified ChatGPT-linked or cross-device customer account. Distinct browser guests have isolated designs and orders; multiple clients authorized by the same browser guest access that same workspace. Share the endpoint and instructions, rather than cookies, bearer credentials, or server secrets.
 
@@ -14,12 +14,12 @@ Sharing a reachable MCP endpoint is separate from a public directory listing. Di
 
 ## Competition path
 
-Verified on October 8, 2026 against the [official rules](https://amazonappdev2026.devpost.com/rules), [FAQ](https://amazonappdev2026.devpost.com/details/faqs), and [resources](https://amazonappdev2026.devpost.com/resources):
+Reviewed on October 18, 2026 against the [official rules](https://amazonappdev2026.devpost.com/rules), [FAQ](https://amazonappdev2026.devpost.com/details/faqs), and [resources](https://amazonappdev2026.devpost.com/resources):
 
 - Alexa+ accepts a self-hosted MCP server using version 2025-11-25 or later over Streamable HTTP. LOOP implements 2025-11-25.
 - Participants cannot obtain the partner-only Alexa+ SDK, MCP Toolkit, CLI, or Web Simulator, or connect their server to a real Alexa+ device/developer console.
 - A custom web page performing real MCP initialization, tool discovery, and tool calls is an accepted demonstration. Hardware and public hosting are not required.
-- Submission still needs a usable GitHub repository, a public demo video under three minutes, English materials or translations, and product feedback. A public repo needs an open-source license; a private repo needs reviewer access.
+- Submission still needs a usable GitHub repository, a public demo video under three minutes, English materials or translations, and product feedback. This repository is published under MIT; a private-repository alternative would require reviewer access.
 
 LOOP uses a self-hosted MCP server with ChatGPT as an AI host for the simulated experience. The official FAQ also accepts a custom real-MCP web client, which remains available for debugging. It makes no claim to use Alexa's voice runtime, account linking, native UI cards, or payments. AWS infrastructure is optional and is not part of this implementation.
 
@@ -157,4 +157,4 @@ Styling and natural-language budget interpretation remain model-driven. Catalog 
 
 Suggested recording sequence: connect and show the MCP trace; describe a concrete styling need; lock and revise a part; save and open the same design in 3D; review the exact quote; confirm a test order and retrieve it. Narrate in English or provide English translation. Explain the added workflow and state persistence, rather than claiming the model alone is the product.
 
-Before submission, the team still needs to prepare the final public video and English product description, finish product feedback for the tools/API/SDKs used, and choose public licensing or private reviewer access. The temporary ChatGPT tunnel does not publish the repository, invite reviewers, upload a video, provide a permanent hosted service, or submit to Devpost.
+The public repository includes an MIT license, English setup/testing guides and submission drafts. The team still needs to rehearse and record the public video, review its project description and product feedback, complete independent host acceptance and formally submit through Devpost. Follow the numbered [submission checklist](DEVPOST_CHECKLIST.md) and [demo script](DEMO_SCRIPT.md). The fixed hosted service is available; a local tunnel is only a development option.

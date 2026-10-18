@@ -1,76 +1,51 @@
-# 在这台电脑的 ChatGPT 桌面版使用 LOOP
+# Local stdio MCP connection
 
-使用已验收的默认 3D、主挂坠和辅助配件图片选择卡片版本。桌面接入复用现有 MCP 工具和 UI，没有更改体验页。
+Use [the hosted OAuth server](CHATGPT.md) for a shared URL. This guide runs a local Node process in a desktop host that supports stdio MCP. Support for inline MCP Apps rendering depends on the host.
 
-## 当前接入：loop_desktop
+## Install and build
 
-已通过客户端支持的 `codex mcp add` 将 `loop_desktop` 注册到这台电脑的桌面运行配置，使用已测试的本地 stdio 启动器。配置回读确认 enabled=true。该入口不使用旧公网 URL，也不要求 HTTP OAuth 登录。
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+```
 
-请完整退出并重新打开桌面应用，让运行中的客户端加载新配置，然后新建对话，发送：
+Configure your host to launch an absolute Node executable with these arguments:
 
-> 请使用本机 loop_desktop 的 loop_get_catalog 和 loop_preview_design，在对话里展示银色圆环、星星主挂坠、暖木珠点缀的可交互 3D 卡片，先不保存或下单。
+```json
+{
+  "mcpServers": {
+    "loop-local": {
+      "command": "/absolute/path/to/node",
+      "args": [
+        "--import", "/absolute/path/to/charm-studio/node_modules/tsx/dist/loader.mjs",
+        "/absolute/path/to/charm-studio/server/mcp/stdio.ts"
+      ],
+      "cwd": "/absolute/path/to/charm-studio"
+    }
+  }
+}
+```
 
-此次测试不要选中仍连接旧公网地址的 LOOP 标签。这里的 `loop_desktop` 是本机 MCP 服务名称；工具仍叫 `loop_get_catalog`、`loop_preview_design` 等。
+This is a generic example, not a universal host configuration schema. If the host does not support `cwd`, launch through a wrapper that changes into the repository root before executing Node. On Windows use the correct `node.exe` and drive-qualified paths. No machine-specific plugin archive or private installation link is distributed by this repository.
 
-## 同一入口的插件包
+The ordinary website need not be running. The entry uses local SQLite and disables the backend AI stylist; the host model reads the catalog and creates previews. Protocol data goes to stdout and diagnostics to stderr. The HTTP endpoint retains its separate OAuth flow.
 
-- 插件：loop新版，版本 0.1.2。
-- 打开：https://chatgpt.com/plugins/plugins_6ac90ff3b4808191bf5f17b72768af67 。
-- 备用安装包：`C:/Users/22539/Documents/ChatGPT/amz/LOOP-MCP-desktop.zip`。
-- 网站：`http://localhost:3000`。仓库 0.2 版本的桌面入口可以独立运行，预览素材通过 MCP 读取，不再要求先开启网站。
+## Try the tools
 
-在桌面版插件页面安装或更新此插件。若桌面版要求本地进程运行权限，在界面中完成后继续。此包使用 stdio，由桌面客户端启动 Node 进程；无需在“创建自定义 MCP 服务器”表单输入 localhost、旧公网地址或 OAuth 参数。
+> Read the LOOP catalog and show an interactive hero design with silver hardware, a star charm and a wood bead. Do not save or create an order.
 
-如果插件详情页无法载入更新，可用插件页的“添加 → 上传插件压缩包”入口上传上述安装包，然后检查版本并安装。不要继续使用失效的旧 Cloudflare 地址。
+If the host renders MCP Apps, use visual choices, locks, rotation, zoom and bag preview. Some hosts expose tools without rendering cards; use the website for a visual trial in that case.
 
-## 对话验收
+## Persistent local identity
 
-新建对话，选择 `@loop新版`，发送：
+The entry generates ignored `.data/desktop-mcp-owner` and uses `.data/charm-studio.sqlite`. Optional `LOOP_STDIO_OWNER_PATH` and `LOOP_STDIO_DATABASE` choose alternative private paths. Keep the owner profile stable to reopen the same local guest's records. Browser and stdio guests are different identities.
 
-> 读取 LOOP 目录，展示银色星星配木珠的交互预览，先不保存或下单。
+The current UI resource is `ui://loop/design-v5.html`, with older URI aliases. Ten design tools and the additional renderer asset tool are exposed. Fixed-whitelist model/material data is loaded on demand via MCP, keeping binary payloads outside model-visible content and below the default stdio message boundary. The inline card uses static WebGL geometry rather than a WebAssembly physics engine; the website studio retains its own motion path.
 
-应调用目录和预览工具，并在对话内显示卡片及 USD 8 报价。再发送：
+## Verify
 
-> 主挂坠还能换成什么？展示图片选项，让我选择。
+```bash
+pnpm mcp:desktop-check
+```
 
-应打开主挂饰图片选择器。点击“海边来信”后报价变为 USD 9；打开“点缀”的更换选项，选择“柔光珍珠”后报价变为 USD 10。主挂饰和辅助配件都可以通过图片选择。后续让 GPT 修改设计时，必须保留卡片选择后的配置和锁定状态。
-
-选择配件不保存，也不下单。保存需要用户明确要求，测试订单仍需单独确认，不会支付或发货。
-
-## 本地进程与数据
-
-包中的 `runtime/start.mjs` 切换到本机项目目录，通过现有 tsx 加载 `server/mcp/stdio.ts`。协议数据写 stdout，诊断写 stderr。关闭桌面连接后子进程退出。
-
-桌面访客身份首次使用时保存在忽略的 `.data/desktop-mcp-owner`，重连后保持同一身份。现有 SQLite 数据库保留；浏览器访客与桌面访客是两个身份，旧浏览器草稿不会自动变成桌面访客的草稿。公共 HTTP MCP 的 OAuth 验证没有修改。
-
-该安装包的运行路径指向本机部署目录，供这台电脑使用。网站停止时按原部署记录重启。此包不是网页端、手机端或其他电脑的公网部署。
-
-## 已验证与待验证
-
-2026-10-09：TypeScript 检查通过。实际 SDK 使用安装包中的启动配置，从不同工作目录启动 MCP，验证 10 个工具、目录、inline UI 元数据和资源、主/辅助选择、USD 8 → 9 → 10 报价、重连身份与子进程退出；使用隔离 SQLite，没有保存或订单调用。19 个验收基准文件的 SHA-256 保持一致，实际本地页面浏览器复测通过。
-
-`.data/verify-native-desktop.mjs` 使用安装的客户端 app-server 引擎读取真实本机配置，通过 `mcpServerStatus/list` 和 `mcpServer/resource/read` 验证 loop_desktop 的初始化、10 个工具、目录和 UI resource。未创建对话，未发送模型请求，未保存或下单。stdio 的 authStatus=unsupported 表示没有 HTTP OAuth 流程，不是认证失败。
-
-插件已更新并回读确认。后端为兼容清单自动补充 `skills: ./skills`，MCP 配置由标准根目录 `mcp.json` 提供。用户此前的对话仍报告 Internal error，客户端旧日志显示 loop-new 的 HTTP 入口未登录；当时没有新版 stdio 进程启动记录。个人私有包不能通过 CLI 的 created-by-me-remote marketplace 安装，因此改为上述直接注册的本机 MCP，原插件没有删除。
-
-实际打开的桌面应用仍需重新加载配置，完成对话内卡片显示与点击验收。引擎连接成功不能代替用户看到卡片的确认。
-
-## 2026-10-13：连续创作与桌面资源升级
-
-仓库 MCP 服务版本为 0.2.0，卡片资源为 `ui://loop/design-v5.html`，保留 v1 / v2 / v3 / v4 URI 的读取兼容。更新代码并构建后，需要让客户端重新发现工具和卡片资源。协议共有 10 个设计工具与 1 个仅供卡片调用的素材读取工具；素材二进制放在工具结果的 `_meta` 中，不进入模型可见的正文。
-
-旧整包卡片超过官方 SDK 默认 10 MiB 的 stdio 消息上限，实际读取资源会断开连接。新版只内嵌选择器缩略图，其余灯光、材质和模型分别通过 `loop_get_preview_asset` 读取，每个资源限制大小并使用固定白名单，不需要外部素材 URL。`pnpm mcp:desktop-check` 使用禁止网络访问的独立进程、默认 SDK 消息限制和临时数据库，检查完整卡片、模型读取、保存及重连后的同一草稿。
-
-v5 卡片将素材按当前视图加载：初始挂件读取 7 个素材，用户切到挂包时才读取托特包模型。下载耗时不会触发渲染超时，素材完成后自动继续显示；内部素材工具不声明输出卡片，避免宿主把工具读取当作另一次组件渲染。
-
-确认测试订单后仍保留完整配置、锁定、名称、语言及草稿 ID，后续对话修改可以继续更新原草稿。卡片增加保存状态、改名、撤销、配件搜索和解锁入口，以及报价过期后的刷新操作。桌面访客收藏和浏览器访客收藏仍使用各自身份，桌面结果不再提供会打开另一位浏览器访客收藏的链接。
-
-## 2026-10-09：3D 预览兼容修复
-
-用户报告卡片显示插画，点击 3D 后提示不可用。禁止 WebAssembly 的隔离 iframe 中复现了同一回退：Rapier 初始化被 CSP 拦截。对话卡片现使用静态姿态的交互式 WebGL 模型，不启动物理引擎；旋转、缩放和挂包功能保留，工作室的物理模拟继续使用默认路径。现有 tote / shoulder GLB 不使用压缩扩展，加载时关闭多余的 Draco / Meshopt 解码器。新预览和重试重置渲染状态；画布卸载时清理 context-loss 监听，避免关闭旧画布误报新预览失败。
-
-严格 CSP 浏览器检查 `pnpm chatgpt:3d-check` 已通过，覆盖 USD 9 原搭配、默认 3D、拖动旋转、滚轮缩放、挂包、配件选择与 USD 10 报价、再次展示同一设计。错误与失败资源请求均为空，隔离数据库无草稿或订单，未调用保存或订单工具。需要 Chrome 和 Playwright；模块在外部运行时用 `PLAYWRIGHT_MODULE` 指定入口。类型检查及 24 项相关单元/集成测试通过。本地验证仍不替代目标桌面卡片的实际显示确认。
-
-同日用户再次反馈后，读取实际桌面 sandbox 日志，确认宿主 CSP 拦截 `http://localhost:3000/assets/environment/studio-small-09-1k.hdr`。因此新增资源内嵌构建：6 个现有灯光、材质和包模型资产随组件 JS 提供，文件从内存加载，纹理使用已内嵌的 Image；GLB 内部图像也不使用 fetch(blob:)。卡片不再请求 localhost 资产，资源包约 17 MB，首次加载体积增加。普通工作室仍使用原资源路径。构建自动生成忽略的 `inlineAssets.generated.ts`。
-
-浏览器回归进一步收紧为 `connect-src 'none'`，同时禁用 WebAssembly，默认 3D、旋转、缩放、挂包、更换配件及再次展示均通过；错误和失败资源请求为空，仍无保存或订单。目标桌面加载新版卡片后，应在 sandbox 日志看到 `LOOP_3D_READY inline-assets-v2`，它在真实 3D 渲染帧完成后发出，便于区分“组件已启动”和“3D 已就绪”。用户当前设计是 pear 主挂饰、pearl 点缀、leather 连接，保留原其余配置，服务器报价 USD 12。
+The check uses an isolated local database, the SDK's default message limit and a process with external network access blocked. It validates initialization, tools, full UI/resource transfer, saves and same-draft reopening. This does not prove your target desktop host has rendered the card; verify that visually in the host.

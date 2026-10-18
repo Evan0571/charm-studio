@@ -1,0 +1,15 @@
+Choosing a charm should feel personal, but a grid of products cannot show how your ideas fit together. LOOP turns a styling conversation into a design you can see and change.
+
+For the Alexa Plus track, we built a self-hosted MCP server using the required protocol and Streamable HTTP. ChatGPT is our demonstration host, with an interactive MCP Apps card.
+
+I start with a brown tote, a cherry charm, a pearl, and a fifteen-dollar budget. LOOP selects compatible parts from its catalog and returns an editable preview. The server calculates each line item, so the displayed price comes from the design itself.
+
+I like the cherry, so I lock it before asking for silver hardware. The next version keeps that choice and changes the finish. The conversation carries the current configuration and locks, which lets me refine the design without starting again.
+
+I can inspect the charm from different angles, see it on a bag, and browse visual alternatives. These are interactive models driven by the same configuration as the quote. The preview helps compare the overall look before making a choice.
+
+Now I name the design and save it. Reopening the saved draft brings back the selected parts and locks. MCP and the website share business rules, so this is a persistent design workflow rather than a picture that disappears after one answer.
+
+Before an order exists, LOOP shows the exact configuration and itemized price for review. I confirm a test order as a separate action, and receive a receipt. Confirmation is bound to that quote and guest workspace, with duplicate protection. This demonstration does not charge money or ship anything.
+
+The website also includes a separate Amazon Pay Sandbox checkout. Our goal is to make accessory customization easier to explore: describe an idea, keep what you love, and turn it into a design you can return to.

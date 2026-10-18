@@ -1,106 +1,48 @@
-# LOOP 包挂定制工作室 PRD
+# Product brief
 
-版本：0.2.1 · 2026 年 10 月 8 日 · 3D 连接与动态修复
+Updated October 18, 2026.
 
-> 阶段记录：本文保留 3D 工作室阶段的范围。后续已完成 AI 对话与 MCP 接入，当前能力、运行方式和 Alexa+ 参赛路径以 [README](../README.md) 与 [MCP 实现说明](MCP.md) 为准；下文「本版不接 MCP」是早期范围，不代表当前实现状态。
+## Customer problem
 
-LOOP 帮助用户从固定结构和现有配件中搭配包挂，实时看到成品、理解每一项价格，并保存设计、完成测试订单。本轮保留第一版的编辑、计价、保存与测试订单，重点验证 3D 材质展示、角度查看、动态交互和挂包比例是否更有助于判断搭配。为后续 Alexa+ 与 MCP 接入保留业务接口。
+People personalizing an everyday bag often know a mood or color but not the names of compatible parts. A flat product grid makes it difficult to imagine the finished combination and compare the cost of small changes.
 
-## 用户与核心问题
+LOOP connects a natural-language brief to an editable catalog configuration, a 3D preview and a server-calculated quote. The working prototype is intended for people exploring personal accessories and for a future small catalog retailer offering guided customization. Customer demand and commercial conversion have not been measured.
 
-面向想给日常包袋增加个性、但不熟悉配件名称和搭配方式的用户。现有商品选择常常依赖多层选项，用户难以预想最终效果。LOOP 把结构、配件位置、外观与价格放在同一工作区，降低试错成本。
+## User journey
 
-## 当前版本边界
+1. Describe a bag, style, occasion and budget, or choose an existing design.
+2. Receive a catalog-valid proposal and itemized USD quote.
+3. Rotate the charm and view it on an illustrative bag.
+4. Lock a favorite part and revise the rest through conversation or visual choices.
+5. Name and save a draft, then return to edit it in the same guest workspace.
+6. Review the exact configuration and quote before explicitly confirming a test order.
+7. Optionally use the website's separate Amazon Pay US Sandbox demonstration.
 
-包含三类结构、预置配件库、颜色与金属色选择、实时 3D 组合预览、拖动旋转、滚轮 / 双指缩放、视角复位、自动旋转、可关闭的动态效果、三种包型试挂、位置锁定、价格明细、设计保存与重开、测试下单与订单记录。
+## Product surfaces
 
-用户反馈第一版卡通图案不足以判断材质、体积与挂包效果。本轮用可旋转的立体模型与材质取代主展示区的 2D 拼图，优先验证体验。模型与配件仍来自固定目录，不在用户编辑时临时生成。包型为皮革托特、腋下肩包、迷你包的示意模型，不代表特定品牌实物。
-
-这一版不接 MCP，不提供实时 AI 生图或聊天推荐，不收取真实款项，不承诺库存、工艺可生产性或物流履约。后续自然语言搭配使用相同的设计结构和计价规则，避免另建一套状态。
-
-## 产品结构
-
-| 基础款式 | 可以编辑的内容 | 约束 |
-| --- | --- | --- |
-| 绳结串珠 | 连接件、绳色、金属色、三根绳上的珠子和末端吊坠 | 固定位置与长度；珠位、吊坠位分别限制配件类型 |
-| 金属垂链 | 金属色、多个垂挂位置的珠子或吊坠 | 固定圆环连接件、挂位与连接方式；不提供任意拖动结构 |
-| 主题挂坠 | 圆环或皮革连接件、主体挂坠、辅助小配件 | 一个主体和一个辅助位置；主体必须选择吊坠 |
-
-首批目录覆盖水果、甜点、小型金属图案和珠子，所有配件拥有稳定 ID、名称、材质、类别和演示价格。模板限定可用配件与连接件。价格使用美元（USD），金额在服务端统一计算。目录按原人民币单价 ÷ 7 四舍五入为整数美元，报价按换算后的单价加总；历史测试订单保留原报价币种。
-
-## 核心操作流程
-
-1. 进入工作室，加载默认款式的 3D 预览和价格。模型尚未加载时展示明确状态。
-2. 选择基础款式，加载其可编辑位置和默认配件。
-3. 选择连接件、颜色或具体位置；从兼容配件库中替换。
-4. 修改配件和颜色后，3D 预览随配置更新；可旋转看侧面、缩放看细节、切换包型比较搭配。后台返回最新计价；报价未完成或失败时禁止下单。
-5. 锁定喜欢的位置，避免后续误改；解锁后可以继续编辑。
-6. 输入设计名称并保存。进入「我的设计」重新打开，恢复所有配置。
-7. 检查物料和价格，明确点击测试下单；生成订单编号和配置快照。
-
-## 功能要求
-
-| 功能 | 当前版本验收标准 |
+| Surface | Role |
 | --- | --- |
-| 模板切换 | 三种结构可切换，界面只展示该结构的有效选项 |
-| 实时预览 | 修改位置、颜色、连接件后，对应 3D 部位变化；模型和数据使用同一配置 |
-| 查看角度 | 拖动旋转、滚轮或双指缩放、按钮缩放与复位均可用；自动旋转可暂停 |
-| 试挂 | 三种包型可切换，当前配件配置和报价不受包型影响 |
-| 动态 | 动态效果可以关闭；尊重系统减少动态效果偏好，不以动画宣称实体工艺验证 |
-| 加载与回退 | 3D 按需加载；失败时明确告知，提供重试；任何 2D 回退必须标示为结构示意 |
-| 选材 | 可按名称搜索与类别筛选；空结果有提示；不允许填入不兼容配件 |
-| 锁定 | 锁定位置在界面禁止替换；状态随设计保存 |
-| 计价 | 展示底座、连接件和配件明细；总额由服务端目录计算；客户端金额不可作为下单依据 |
-| 保存 | 成功后明确提示；刷新后可重开；不同访客的设计互不可见 |
-| 测试订单 | 明示不会扣款或发货；订单保存提交当时的配置与报价；重复提交同一请求不产生重复订单 |
-| 反馈 | 加载、错误、成功、空列表状态可识别；失败时保留用户编辑内容 |
-| 响应式 | 桌面预览与编辑并排；手机可顺序操作，无横向溢出，主要控件适合触摸 |
+| Website | Discovery, AI stylist, manual 3D editing, saved designs, test checkout and Amazon Pay Sandbox |
+| ChatGPT MCP Apps | Conversational host and interactive card with catalog choices, locks, saves and confirmed test orders |
+| MCP web client | Real Streamable HTTP demonstration with a visible protocol trace |
+| Local stdio | Compatible desktop-host connection using the same tools and UI resource |
 
-## 视觉与素材
+## Design rules
 
-采用用户指定的 [Airbnb 设计参考](https://getdesign.md/airbnb/design-md)，完整参考位于仓库根目录 DESIGN.md。使用白色背景、炭黑文字、#FF385C 主色、轻边框和圆角卡片，产品预览承担主要视觉。使用系统字体，不依赖 Airbnb 专有字体或标识。
+Three templates define compatible slots and connectors. Each part has a stable ID, category, material, appearance and sample price. The server validates selections and recalculates prices for every quote and checkout.
 
-主预览使用 Three.js / React Three Fiber 的真实 3D 场景，材质表现结合金属反射、表面粗糙度、透明度与环境灯光。连接点、部件尺度与结构由模板固定，切换配件保持同一套配置和业务约束。交互以模型旋转、缩放、试挂与可关闭的动态效果为核心。
+One shared configuration drives previews, saves and quotes. Locked slots must survive conversational revisions. Quote preparation does not create an order; explicit confirmation does. Retrying the same valid confirmation is idempotent.
 
-小链条的起点必须落在承托环上；包的 D 环须由缝制皮革固定带连接到包体，连接件按环内承重点定位。金属主环通过垂直转接小环与 D 环相扣，皮革挂带直接穿环。首次加载、切换包型与恢复动态时只允许轻微摆动；物理约束限制转角，不允许先翻转一整圈再稳定。迷你包的长串须与预览地面保持初始间隙。
+The catalog contains 14 parts and five cord colors. The three bag models and custom bag colors affect preview appearance without changing the charm quote. USD sample prices are derived by rounding original CNY unit prices divided by seven; historical orders retain their confirmed currency and price.
 
-配件与模板目录优先使用同一 3D 模型预渲染的缩略图，避免主模型与选材图片风格不一致。主场景加载失败时，旧 2D 结构图仅作为带明确标注的回退，不宣称其是 3D。设计、保存弹窗和订单优先使用相同配置的 3D 快照。快照只在当前浏览器保留最近 8 个配置，旧记录或未加载完成的配置会明确显示“方案示意图”；重开设计可查看完整 3D。快照不作为订单数据或材质证明。
+## Technical implementation
 
-本轮模型用于体验和搭配比较，不是实际商品扫描。皮革、珐琅、珠子等材质、尺寸和挂接方式仍为设计样例。动态效果不能验证真实布料形变、绳结结构、承重和碰撞工艺；模型资产需要记录来源与许可，外部纹理或模型不能以“网上可下载”作为商用授权依据。
+TypeScript, React, React Three Fiber/Three.js, Express, the official MCP TypeScript SDK and MCP Apps. The website stylist uses OpenAI Responses and structured output. SQLite supports local development; the hosted Vercel deployment uses Supabase for business and OAuth state. The website uses the Amazon Pay SDK for its separate Sandbox integration.
 
-## 前后端与数据
+The MCP server implements 2025-11-25 over Streamable HTTP, with ten design tools and one renderer asset tool. Shared business services serve REST and MCP. OAuth uses visitor consent and S256 PKCE; large card/model responses stream over HTTP.
 
-前端：React、TypeScript、Vite、Three.js / React Three Fiber。3D 展示按需加载，业务编辑与订单状态不依赖渲染器是否可用。后端：Express，负责目录、验证、报价、设计与订单。开发环境一个地址同时提供界面和 API。
+## Scope and limits
 
-需要持久化数据库。目标为独立 Supabase 云项目；若云资源因账号额度暂不可用，本地 SQLite 可完成同样的功能测试。存储模式由后端配置选择，不在失败时静默切换或丢弃云数据。配置了云数据库却无法访问时，应返回明确错误。
+This is a hackathon prototype, with guest identities and simulated commerce. It has no inventory, verified customer accounts, real fulfillment or manufacturing calibration. The model interprets a budget; the authoritative quote must still be reviewed. There is no real Alexa+ device integration or claim of Amazon/OpenAI directory publication.
 
-| 数据 | 内容 |
-| --- | --- |
-| 配件目录 | 版本化代码中的预置模板、配件、颜色与演示单价 |
-| 设计 | 访客归属、名称、配置、创建与更新时间 |
-| 订单 | 访客归属、设计名称、配置快照、服务端报价、测试状态、幂等键、创建时间 |
-
-首版以浏览器访客会话隔离设计和订单，使用 HttpOnly Cookie；清理 Cookie 或换设备不会自动取回设计。跨设备账号同步属于后续功能。数据库启用 RLS，浏览器不能直接读写设计或订单；服务端密钥只保存在本地环境变量，不进入前端包或 GitHub。
-
-## 业务 API
-
-| 接口 | 用途 |
-| --- | --- |
-| GET /api/catalog | 获取材料与模板目录 |
-| POST /api/quote | 验证配置并计算物料明细 |
-| GET /api/designs | 获取当前访客的设计 |
-| POST /api/designs | 保存或更新当前访客的设计 |
-| DELETE /api/designs/:id | 删除自己的设计 |
-| GET /api/orders | 获取自己的测试订单 |
-| POST /api/orders | 服务端重新计价并创建幂等测试订单 |
-| GET /api/health | 检查服务、存储模式和数据库表连通性 |
-
-## 测试与完成定义
-
-自动验证配置兼容性、服务端计价、跨访客隔离、保存恢复、订单快照和重复提交。浏览器实际操作三种模板、替换配件、锁定与解锁、保存与重开、测试下单，并检查桌面与手机布局。额外验证 3D 旋转、缩放、复位、自动旋转开关、动态开关、三种包型、快速替换配件与 WebGL 失败回退。不能仅以构建通过代替实际浏览器中的模型与交互检查。
-
-完成第一版的标准是：用户能从选择模板到查看已持久化的测试订单，过程中预览、配置与报价一致；GitHub 私有仓库保存可复现代码和运行说明，邀请队友协作。支付、生产、MCP 与自然语言推荐均不作为这一版完成条件。
-
-## 下一阶段
-
-先让两位队员各独立走通一次流程，重点记录 3D 材质是否足够帮助判断搭配、尺寸和接点是否可信、换件是否流畅、手机性能是否可接受，同时记录找不到的操作、误选和保存失败。若仍不足以判断实物，优先改进模型、贴图与实测尺寸，不用增加特效掩盖材质问题。修复后再扩展自然语言搭配：保留锁定配件，针对风格和预算修改可变位置，用现有接口校验与报价。Alexa+ 的卡片展示、支付能力与比赛具体接入要求需要以届时平台文档验证，不能从普通网页能力直接推定。
+Current evidence is in [STATUS.md](STATUS.md) and [VALIDATION.md](VALIDATION.md). Historical design references are in [DESIGN.md](../DESIGN.md) and [plans/](plans/).

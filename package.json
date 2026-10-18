@@ -52,5 +52,15 @@
   "packageManager": "pnpm@11.25.0",
   "engines": {
     "node": ">=22.13"
+  },
+  "description": "AI bag charm design with editable 3D previews, conversational revisions, MCP Apps, and Amazon Pay sandbox checkout.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Evan0571/charm-studio.git"
+  },
+  "homepage": "https://loop-charm-studio.vercel.app/",
+  "bugs": {
+    "url": "https://github.com/Evan0571/charm-studio/issues"
   }
 }
