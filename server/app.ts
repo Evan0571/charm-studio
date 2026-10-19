@@ -24,6 +24,12 @@ export function createApp(storage: Storage, stylist: StylistService = createStyl
   const mcp = createMcpHttp(storage, service, mcpOptions);
   app.disable('x-powered-by');
   app.locals.closeMcp = mcp.close;
+  // Public domain-ownership challenge for the LOOP Sandbox directory draft.
+  app.get('/.well-known/openai-apps-challenge', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.type('text/plain').send('W8wE0HoGU-rC3fgyy-LTIFArgBEt6oiopt_yYosf2gg');
+  });
   app.use((req, res, next) => {
     if (/^\/(?:\.well-known(?:\/|$)|authorize(?:\/|$)|token(?:\/|$)|register(?:\/|$)|revoke(?:\/|$)|oauth(?:\/|$))/.test(req.path)) mcp.oauthRouter(req, res, next);
     else next();

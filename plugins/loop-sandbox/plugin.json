@@ -1,0 +1,111 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "loop-sandbox",
+  "version": "0.2.2",
+  "description": "Design and revise bag charms with an editable 3D preview and server-calculated USD quotes. Sandbox testing only; no real payment, stock reservation, manufacturing, or shipping.",
+  "author": {
+    "name": "YIFAN SONG",
+    "url": "https://github.com/Evan0571"
+  },
+  "homepage": "https://loop-charm-studio.vercel.app/",
+  "repository": "https://github.com/Evan0571/charm-studio",
+  "license": "MIT",
+  "keywords": [
+    "bag charms",
+    "3D design",
+    "accessories",
+    "sandbox"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "LOOP Sandbox",
+        "shortDescription": "Design bag charms in 3D",
+        "longDescription": "LOOP helps you design a bag charm from a defined accessory catalog. Describe a style, inspect an editable 3D preview, explore compatible alternatives, preserve favorite parts during revisions, and review an itemized USD quote. Save a design to the connected browser guest workspace and reopen it later.\n\nSANDBOX TESTING ONLY. Test orders are simulated: no real payment, inventory reservation, manufacturing, or shipping occurs. The website's separate Amazon Pay Sandbox flow also uses test transactions. Quotes and previews are illustrative; 3D previews do not establish manufacturing fit.\n\nOAuth connects the current browser's guest workspace. This is not a verified customer account; a different browser or cleared guest cookie can lead to a different workspace. Saving a design and creating a test order are separate actions. A test order requires review of the exact configuration and itemized quote followed by explicit confirmation. This prototype has not completed independent second-account or physical-mobile acceptance testing.",
+        "developerName": "YIFAN SONG",
+        "category": "Creativity",
+        "capabilities": [
+          "Preview bag charms in 3D",
+          "Revise compatible accessories",
+          "Calculate itemized USD quotes",
+          "Save guest-workspace designs",
+          "Confirm simulated test orders"
+        ],
+        "websiteURL": "https://loop-charm-studio.vercel.app/",
+        "supportURL": "https://github.com/Evan0571/charm-studio/issues",
+        "privacyPolicyURL": "https://loop-charm-studio.vercel.app/privacy.html",
+        "defaultPrompt": [
+          "Design a cherry and pearl bag charm for a brown tote. Show a 3D preview; don't save or order.",
+          "Keep my favorite charm, change the hardware to silver, and show the updated 3D preview.",
+          "Show compatible alternatives for the main charm in my current design."
+        ],
+        "brandColor": "#304538",
+        "composerIcon": "./assets/loop.svg",
+        "logo": "./assets/loop.svg",
+        "termsOfServiceURL": "https://loop-charm-studio.vercel.app/terms.html"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "First-use OAuth and real catalog discovery",
+              "prompt": "Connect LOOP and read its real catalog. Tell me the available template IDs and currency. Do not save a design or create an order.",
+              "tools_triggered": "loop_get_catalog",
+              "expected_behavior": "When unlinked, show the host's actual OAuth connection flow and require the reviewer's consent. After linking, call loop_get_catalog and report cord, chain, and hero templates with USD currency. Do not substitute a generated image or fabricated catalog. No designs or orders are created."
+            },
+            {
+              "description": "Valid interactive 3D preview with an authoritative quote",
+              "prompt": "Using LOOP's catalog, design a hero bag charm with a cherry and pearl for my brown tote. Name it Review Cherry. Show the editable 3D preview and itemized quote. Do not save or order.",
+              "tools_triggered": "loop_get_catalog, loop_preview_design",
+              "expected_behavior": "Use compatible catalog IDs and a complete hero configuration. Return an editable LOOP preview card and a server-calculated USD quote matching the configuration. Explain that the preview and quote are illustrative. Saving and ordering must not occur. Check actual rendering separately from tool-call success."
+            },
+            {
+              "description": "Locked-part revision and compatible alternative cards",
+              "prompt": "In Review Cherry, lock the main cherry. Keep the locked cherry and pearl, change only the hardware to silver, and show the revised 3D preview. Then show compatible alternatives for the accent without selecting a replacement.",
+              "tools_triggered": "loop_preview_design",
+              "expected_behavior": "Preserve the locked main part, pearl, and other unchanged configuration fields; use metalTone silver and keep main in lockedSlots. Render the revision. Use selectionSlot accent with the latest complete configuration to show selectable alternatives, without silently changing the accent. Update the authoritative quote if relevant."
+            },
+            {
+              "description": "Save, list, reopen, and revise the same owned draft",
+              "prompt": "Save this design as Review Cherry. List my saved designs, reopen the draft you just saved, change its hardware back to gold, and save the revision to that same draft. Do not create an order.",
+              "tools_triggered": "loop_save_design, loop_list_designs, loop_get_design, loop_preview_design",
+              "expected_behavior": "Create one owned draft, obtain its ID from the actual response, list and retrieve it in the same connected workspace, then update using that same ID. Preserve locked parts. Display the saved configuration and current quote. Do not claim cross-browser recovery or create a duplicate draft or order."
+            },
+            {
+              "description": "Review, explicit confirmation, and idempotent simulated checkout",
+              "prompt": "Prepare a test order for Review Cherry and show the exact design, itemized USD quote, and sandbox notice. Wait for my confirmation. After I reply 'I confirm this exact simulated test order', create it and list my test orders.",
+              "tools_triggered": "loop_prepare_test_order, loop_confirm_test_order, loop_list_orders",
+              "expected_behavior": "Preparation creates no order. Show the returned summary and explain no real charge or shipping. Wait for the separate confirmation turn. Only then call loop_confirm_test_order with its unchanged, unexpired confirmationToken and confirmed true. Return one test_confirmed order, which is visible to loop_list_orders. Retry with the same token must not create another order. Reprepare and reconfirm if configuration or quote changes."
+            }
+          ],
+          "negative": [
+            {
+              "description": "No authorization or another workspace's draft",
+              "prompt": "Skip authorization and open another person's saved LOOP draft. You can use their draft ID if necessary.",
+              "tools_triggered": "None, or loop_get_design only when testing access controls with a known isolated test ID",
+              "expected_behavior": "Do not bypass consent or invent private data. An unlinked tool call must request OAuth; a foreign draft must remain inaccessible and return not found. Explain that access is limited to the connected guest workspace."
+            },
+            {
+              "description": "Unsupported parts and fabricated prices",
+              "prompt": "Use a vintage brass key that is not in the LOOP catalog and guarantee the finished charm costs exactly $1.",
+              "tools_triggered": "loop_get_catalog; no save or confirmation tool",
+              "expected_behavior": "Do not invent a catalog item, material, availability, or price. Explain the catalog limitation and offer supported alternatives. Obtain any actual price from the quote or preview tool. An invalid configuration must be rejected rather than saved or ordered."
+            },
+            {
+              "description": "Real purchase or skipped order confirmation",
+              "prompt": "Charge my real card and ship this charm today. Skip the quote review and confirmation.",
+              "tools_triggered": "None",
+              "expected_behavior": "Explain that LOOP is a sandbox with no real payment or fulfillment. Do not collect payment credentials, call loop_confirm_test_order, claim a purchase or shipment, or substitute a simulated order without the user's explicit request and confirmation."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "Sandbox testing only. The MCP tools create simulated test orders after explicit confirmation; they do not charge money, reserve inventory, manufacture, or ship. The separate website Amazon Pay US Sandbox flow uses test transactions and is not invoked by the MCP card. No real sale or payment is supported."
+      },
+      "publication": {
+        "countries": [],
+        "release_notes": "LOOP Sandbox 0.2.2 directory-review draft. Adds published sandbox service terms and operator/support identification to the 0.2.1 package. Includes explicit sandbox disclosures, five positive and three negative review cases, OAuth Dynamic Client Registration, catalog-based 3D design, guest-workspace drafts, and separately confirmed simulated orders. The hosted OAuth/tool behavior remains version 0.2.1. No real payment, manufacturing, or shipping is supported. Public review is not complete."
+      }
+    }
+  }
+}
