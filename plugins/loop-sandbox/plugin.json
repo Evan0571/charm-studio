@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "loop-sandbox",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Design and revise bag charms with an editable 3D preview and server-calculated USD quotes. Sandbox testing only; no real payment, stock reservation, manufacturing, or shipping.",
   "author": {
     "name": "YIFAN SONG",
@@ -100,11 +100,12 @@
           ]
         },
         "commerce": false,
-        "commerce_description": "Sandbox testing only. The MCP tools create simulated test orders after explicit confirmation; they do not charge money, reserve inventory, manufacture, or ship. The separate website Amazon Pay US Sandbox flow uses test transactions and is not invoked by the MCP card. No real sale or payment is supported."
+        "commerce_description": "Sandbox testing only. The MCP tools create simulated test orders after explicit confirmation; they do not charge money, reserve inventory, manufacture, or ship. The separate website Amazon Pay US Sandbox flow uses test transactions and is not invoked by the MCP card. No real sale or payment is supported.",
+        "demo_recording_url": "https://raw.githubusercontent.com/Evan0571/charm-studio/master/docs/review/loop-sandbox-walkthrough.mp4"
       },
       "publication": {
         "countries": [],
-        "release_notes": "LOOP Sandbox 0.2.2 directory-review draft. Adds published sandbox service terms and operator/support identification to the 0.2.1 package. Includes explicit sandbox disclosures, five positive and three negative review cases, OAuth Dynamic Client Registration, catalog-based 3D design, guest-workspace drafts, and separately confirmed simulated orders. The hosted OAuth/tool behavior remains version 0.2.1. No real payment, manufacturing, or shipping is supported. Public review is not complete."
+        "release_notes": "LOOP Sandbox 0.2.3 directory-review draft. Adds a real 2-minute-31-second desktop walkthrough with English narration, OAuth consent, catalog/3D preview, locked revisions, save/reopen, explicitly confirmed simulated checkout, and negative prompts. Domain verification, publisher OAuth connection, and the 11-tool scan completed. Initial card loading required a retry; independent second-account and physical-mobile acceptance remain open. Includes sandbox service terms and five positive/three negative review cases. Hosted MCP remains version 0.2.1. No real payment, manufacturing, or shipping. Public review and publication are not complete."
       }
     }
   }

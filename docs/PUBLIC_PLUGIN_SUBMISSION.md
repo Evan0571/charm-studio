@@ -1,6 +1,6 @@
 # LOOP Sandbox — public directory submission
 
-Prepared October 18, 2026; identity status updated October 19, 2026. Hosted MCP version **0.2.1** / commit `53959f7`.
+Prepared October 18, 2026; recording and publication checks updated October 19, 2026. Hosted MCP version **0.2.1**. Publication support changes deployed in commit `9ac0e32`.
 
 **Draft only: no review submission, approval, or public publication is established by this document.** The owner completed the Persona verification flow on October 18, 2026. On October 19, the user reported **Verified**, and the upload dialog offered **Individual — YIFAN SONG**. The prepared ZIP uses that verified publishing identity.
 
@@ -10,8 +10,10 @@ Prepared October 18, 2026; identity status updated October 19, 2026. Hosted MCP 
 - Plugin ID: `plugin_asdk_app_6ad661daee488191af1f5dc7ed1b647e`.
 - Initial draft submission ID: `appsub_6ad661daee7c8191a2837bf48f93befc`.
 - Name, verified individual, logo, description, OAuth/DCR configuration, and five positive/three negative review cases were imported. The listing visibly includes **SANDBOX TESTING ONLY**.
-- Initial blockers included the missing terms URL, incomplete review information, and MCP/domain setup. Package **0.2.2** adds the terms URL; the hosted terms and domain challenge must be deployed before completing those checks.
-- The portal's OAuth flow reached the real LOOP consent page; the first callback returned a generic Platform error. Connection success and tool discovery are not established by that attempt.
+- Package **0.2.2** added the terms URL. The terms, updated privacy/operator details, and exact domain challenge are deployed and verified on the production origin.
+- After domain verification, the portal's actual OAuth flow completed successfully. The MCP panel shows **Configured**, **Authorized**, and **Domain verified**. All 11 tools were discovered; the latest rescan reported **No findings in the latest MCP scan**.
+- Reviewer guest-consent steps were saved in the private dashboard. LOOP has no email/password login; username/password fields were deliberately left empty rather than inventing credentials. The portal offers no explicit guest-consent sign-in option, so final validation may still require clarification.
+- Package **0.2.3** adds the real walkthrough URL. Its video is 2 minutes 31 seconds, with synthesized English narration, real desktop capture, chapter labels, and an explicit sandbox notice. See [recording scope and evidence](review/README.md).
 - The public domain challenge token is served by the exact `/.well-known/openai-apps-challenge` route. It is a public ownership-verification value, not a client secret. Preserve the token associated with this draft when deploying.
 
 ## Accurate sandbox disclosure
@@ -36,7 +38,7 @@ python3 - <<'PY'
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 root = Path('plugins/loop-sandbox')
-output = Path('tmp/loop-publication/loop-sandbox-0.2.2.zip')
+output = Path('tmp/loop-publication/loop-sandbox-0.2.3.zip')
 output.parent.mkdir(parents=True, exist_ok=True)
 with ZipFile(output, 'w', ZIP_DEFLATED) as archive:
     for relative in ['plugin.json', 'mcp.json', 'assets/loop.svg', 'LICENSE']:
@@ -47,19 +49,19 @@ PY
 
 The package author and developer label are `YIFAN SONG`, matching the verified individual offered by the upload dialog. The source repository remains under the public GitHub handle `Evan0571`. Do not invent a company or support email.
 
-Package 0.2.2 includes `termsOfServiceURL`, pointing to `/terms.html`; deploy and verify the page before final submission. It still omits `review.demo_recording_url`: no accessible walkthrough recording has been established. A website or screenshot is not a video walkthrough. ZIP upload supports incomplete review drafts.
+Package 0.2.3 includes `termsOfServiceURL`, pointing to the deployed `/terms.html`, and `review.demo_recording_url`, pointing to the public MP4 in this repository. A draft upload remains distinct from review submission or approval.
 
 ## Upload and final-review work
 
 1. **Owner identity (complete):** the verified individual is available in the upload dialog. Do not put identity documents, verification codes, or passwords in this repo or chat.
 2. **Upload:** open [Platform Plugins](https://platform.openai.com/plugins), choose **Upload new or existing plugin**, select the verified identity, and upload the ZIP as **With MCP**. Prefer the existing Platform draft if one is subsequently created; do not assume the personal custom plugin ID is already a public submission.
 3. **MCP setup:** connect `https://loop-charm-studio.vercel.app/mcp`, OAuth with Dynamic Client Registration, scope `loop:studio`. Leave static client credentials blank. Discovery supplies the registration/authorization/token endpoints. Do not choose unauthenticated access or embed a bearer token.
-4. **Domain verification:** read the actual generated challenge from the portal. Serve only that exact token as plain text at the exact challenge URL, normally `https://loop-charm-studio.vercel.app/.well-known/openai-apps-challenge`. Deploy and verify it. No challenge has been generated yet; do not make one up or overwrite another plugin's token.
-5. **Scan:** authorize a fresh reviewer guest workspace and run the tool scan. Inspect all 11 tools and accurately explain their annotations. Correct actual findings; no scan outcome is claimed here.
-6. **Required public pages:** product and privacy pages exist; support uses the project's public GitHub Issues page. Publish accurate service terms identifying the actual operator and review privacy/support completeness for public users. Do not claim nonexistent deletion controls, automatic retention, real inventory, or fulfillment.
+4. **Domain verification (complete):** the portal's exact challenge is deployed as plain text at `https://loop-charm-studio.vercel.app/.well-known/openai-apps-challenge`. The dashboard shows Domain verified. Preserve this draft's token.
+5. **Scan (complete for current desktop publisher connection):** OAuth completed and all 11 tools were scanned with no findings. This is not acceptance of an independent recipient's connection.
+6. **Required public pages (deployed):** product, privacy, support, and service terms URLs are included. The terms identify the actual operator and sandbox boundaries. Do not claim nonexistent deletion controls, automatic retention, real inventory, or fulfillment.
 7. **Review details:** paste the reviewer-access text below into the private Review details form. No password is required by LOOP's current guest-consent flow. Explain that fact rather than supplying a real user's credentials or inventing a demo password. Resolve any reviewer requirement for account authentication with OpenAI if guest consent is insufficient.
-8. **Run review cases:** the ZIP contains exactly five positive and three negative cases. Run them in a real ChatGPT connection, including desktop and mobile rendering; record actual results. The friend's OAuth failure and missing independent mobile acceptance remain unresolved host-level checks.
-9. **Video:** record an actual walkthrough of connection/consent, catalog, preview, locked revision, alternatives, save/reopen, explicit test-order confirmation, and safe negative behavior. Keep authentication secrets, cookies, codes, and private records off camera. Supply an accessible video URL.
+8. **Run review cases:** the ZIP contains exactly five positive and three negative cases. The desktop recording covers their main user flows against the real hosted service. It does not prove independent second-account linking, physical-mobile rendering, adversarial server isolation, or idempotent replay through the ChatGPT UI. Initial card loads required Try again; this is retained in the recording.
+9. **Video (created):** [public MP4](https://raw.githubusercontent.com/Evan0571/charm-studio/master/docs/review/loop-sandbox-walkthrough.mp4), [English captions](review/loop-sandbox-walkthrough.en.srt), and [narration](review/walkthrough-narration.md). The capture excludes browser chrome, authentication secrets, cookies, codes, and unrelated private records. Only the owner-approved sample draft and one simulated order are shown.
 10. **Submit and publish:** after required findings and materials are complete, inspect the final draft and required attestations. The owner must personally accept any new legally binding terms. Submit the truthful sandbox description for review only if it meets the applicable requirements. After approval, publish the approved version; approval alone does not list it publicly.
 
 ## Reviewer access — for the secure dashboard form
@@ -100,6 +102,8 @@ The booleans below reflect the current server declarations; submit explanations 
 
 - Hosted OAuth version 0.2.1 supports per-tool OAuth metadata and a first-use `mcp/www_authenticate` challenge; prior production protocol acceptance covered DCR, consent, S256 PKCE, catalog, preview, refresh, revocation, and the inline UI resource.
 - [CI for 53959f7](https://github.com/Evan0571/charm-studio/actions/runs/39152026850) passed 175 automated tests plus build and transport checks. Isolated automated tests are not native ChatGPT review runs.
+- [CI for publication support commit 9ac0e32](https://github.com/Evan0571/charm-studio/actions/runs/39303612022) passed automated tests, builds, artifacts, transport, and desktop checks. The live challenge endpoint and terms were verified separately.
+- The real desktop walkthrough shows catalog/3D preview, locked revision, alternatives, save/list/reopen/update of the same owned draft, exact quote review, one explicitly approved test order and order readback, plus model refusals for three negative prompts. It does not show server rejection of a foreign-ID request or repeated order-token replay; automated checks and UI evidence remain distinct.
 - The current friend's original plugin still has an unresolved linking problem. Do not mark that account or its UI as verified.
 - A directory listing would provide a supported discovery/install route for eligible accounts; it would not guarantee every account, region, client, OAuth connection, or 3D renderer succeeds.
 
