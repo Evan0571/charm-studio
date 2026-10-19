@@ -2,13 +2,15 @@
 
 The public website and MCP server run independently of the author's computer. A compatible ChatGPT account/workspace needs permission to add custom MCP servers. The [web MCP demo](https://loop-charm-studio.vercel.app/mcp-demo.html) offers a separate no-ChatGPT trial.
 
+For a self-contained Chinese guide to give a teammate's GPT, use [LOOP Demo installation and acceptance](LOOP_TEAMMATE_SETUP_AND_TEST.zh-CN.md). It covers personal custom MCP connections without public publication, OAuth, Work mode, read-only acceptance, and evidence-based troubleshooting.
+
 ## Hosted connection
 
 1. In ChatGPT on the web, open **Plugins**, choose **Add** and **Add custom MCP server**. Account/workspace permissions and UI labels can vary.
 2. Name it **LOOP** and enter `https://loop-charm-studio.vercel.app/mcp` as the Server URL.
 3. Choose **OAuth** and leave static Client ID/Client Secret blank. LOOP publishes dynamic-registration metadata.
 4. Create/install the personal connection and complete **Continue to LOOP** → **Authorize connection** in the browser.
-5. Start a conversation and select `@LOOP`.
+5. On the ChatGPT homepage, switch from **Chat** to **Work** when that choice is available. Start a new Work conversation and select `@LOOP` from the actual plugin picker.
 
 Some ChatGPT surfaces request OAuth only on the first tool call. If the plugin
 shows **Try now** before linking, open a new conversation, select LOOP, and ask
