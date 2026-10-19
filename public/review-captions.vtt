@@ -1,0 +1,133 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:05.996
+This walkthrough shows the real LOOP integration in ChatGPT Work. It uses the hosted MCP
+
+2
+00:00:05.996 --> 00:00:11.650
+service. All orders are sandbox tests, with no real payment, inventory reservation,
+
+3
+00:00:11.650 --> 00:00:13.490
+manufacturing, or shipping.
+
+4
+00:00:14.490 --> 00:00:19.534
+OAuth asks for consent to connect the current browser guest workspace. The publisher
+
+5
+00:00:19.534 --> 00:00:24.459
+connection then shows Authorized and Domain verified. This is guest consent, not a
+
+6
+00:00:24.459 --> 00:00:25.900
+verified customer login.
+
+7
+00:00:26.700 --> 00:00:32.051
+The selected LOOP plugin reads its real catalog. Its templates are cord, chain, and
+
+8
+00:00:32.051 --> 00:00:37.660
+hero, with prices in US dollars. Review Cherry uses the hero layout, cherries, a pearl,
+
+9
+00:00:37.660 --> 00:00:41.270
+and a leather strap. The server quote is twelve dollars.
+
+10
+00:00:42.070 --> 00:00:46.814
+The card can show the charm on an illustrative bag. The main cherry is then locked so it
+
+11
+00:00:46.814 --> 00:00:49.510
+can be preserved during a conversational revision.
+
+12
+00:00:52.715 --> 00:00:57.806
+The follow-up changes only the hardware to silver. The cherry remains locked, the pearl
+
+13
+00:00:57.806 --> 00:01:02.721
+is preserved, and the total stays twelve dollars. Compatible accent cards show their
+
+14
+00:01:02.721 --> 00:01:04.945
+materials and resulting design totals.
+
+15
+00:01:05.745 --> 00:01:10.544
+Saving is a separate action. The live card confirms that this design has been saved to
+
+16
+00:01:10.544 --> 00:01:12.665
+the connected conversation collection.
+
+17
+00:01:13.465 --> 00:01:18.513
+Only the newest review draft is listed, retrieved, and updated using the same ID. The
+
+18
+00:01:18.513 --> 00:01:23.679
+hardware returns to gold. This run needed Try again for an initial card load. That real
+
+19
+00:01:23.679 --> 00:01:25.045
+retry is retained here.
+
+20
+00:01:29.720 --> 00:01:34.862
+Preparing checkout does not create an order. The exact quote is three dollars for the
+
+21
+00:01:34.862 --> 00:01:39.883
+base, three for the strap, four for cherries, and two for the pearl: twelve dollars
+
+22
+00:01:39.883 --> 00:01:43.150
+total. The sandbox notice appears before confirmation.
+
+23
+00:01:43.950 --> 00:01:48.637
+After the owner explicitly approved this exact test order, the confirmation button
+
+24
+00:01:48.637 --> 00:01:53.610
+creates a single simulated receipt. Reading the newest order returns test confirmed and
+
+25
+00:01:53.610 --> 00:01:56.640
+twelve dollars. There is no real payment or shipping.
+
+26
+00:01:58.236 --> 00:02:02.902
+Three negative requests are handled without changing the design or creating another
+
+27
+00:02:02.902 --> 00:02:07.680
+order. LOOP does not bypass OAuth or expose someone else's private draft. It does not
+
+28
+00:02:07.680 --> 00:02:12.627
+invent an unlisted brass key or guarantee a fictional one-dollar price. It cannot charge
+
+29
+00:02:12.627 --> 00:02:14.426
+a real card or arrange shipping.
+
+30
+00:02:15.226 --> 00:02:19.841
+This recording demonstrates the existing personal LOOP connection against the same
+
+31
+00:02:19.841 --> 00:02:24.738
+hosted endpoint as the public draft. Initial card loading required a retry. Independent
+
+32
+00:02:24.738 --> 00:02:29.297
+second-account and physical-mobile acceptance remain open. The recording is not a
+
+33
+00:02:29.297 --> 00:02:30.366
+directory approval.

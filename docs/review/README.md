@@ -1,6 +1,6 @@
 # LOOP Sandbox reviewer walkthrough
 
-Recorded October 19, 2026. [Watch the public MP4](https://raw.githubusercontent.com/Evan0571/charm-studio/master/docs/review/loop-sandbox-walkthrough.mp4) · [English captions](loop-sandbox-walkthrough.en.srt) · [Narration and chapters](walkthrough-narration.md).
+Recorded October 19, 2026. [Watch the public walkthrough](https://loop-charm-studio.vercel.app/review.html) · [Download MP4](https://raw.githubusercontent.com/Evan0571/charm-studio/master/docs/review/loop-sandbox-walkthrough.mp4) · [English captions](loop-sandbox-walkthrough.en.srt) · [Narration and chapters](walkthrough-narration.md).
 
 The 1920 × 1080 H.264/AAC video lasts 2 minutes 31 seconds. It contains actual desktop browser screenshots, trimmed idle time, chapter labels, and synthesized English narration using the system Samantha voice. Frames are held when narration is longer than an action. Product UI and tool results are not fabricated. Captions are approximate narration timings.
 

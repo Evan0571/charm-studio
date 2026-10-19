@@ -101,7 +101,7 @@
         },
         "commerce": false,
         "commerce_description": "Sandbox testing only. The MCP tools create simulated test orders after explicit confirmation; they do not charge money, reserve inventory, manufacture, or ship. The separate website Amazon Pay US Sandbox flow uses test transactions and is not invoked by the MCP card. No real sale or payment is supported.",
-        "demo_recording_url": "https://raw.githubusercontent.com/Evan0571/charm-studio/master/docs/review/loop-sandbox-walkthrough.mp4"
+        "demo_recording_url": "https://loop-charm-studio.vercel.app/review.html"
       },
       "publication": {
         "countries": [],
