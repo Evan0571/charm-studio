@@ -1,13 +1,13 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "loop-sandbox",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Design and revise bag charms with an editable 3D preview and server-calculated USD quotes. Sandbox testing only; no real payment, stock reservation, manufacturing, or shipping.",
   "author": {
     "name": "YIFAN SONG",
     "url": "https://github.com/Evan0571"
   },
-  "homepage": "https://loop-charm-studio.vercel.app/",
+  "homepage": "https://loop-charm-studio.vercel.app/?lang=en",
   "repository": "https://github.com/Evan0571/charm-studio",
   "license": "MIT",
   "keywords": [
@@ -31,7 +31,7 @@
           "Save guest-workspace designs",
           "Confirm simulated test orders"
         ],
-        "websiteURL": "https://loop-charm-studio.vercel.app/",
+        "websiteURL": "https://loop-charm-studio.vercel.app/?lang=en",
         "supportURL": "https://github.com/Evan0571/charm-studio/issues",
         "privacyPolicyURL": "https://loop-charm-studio.vercel.app/privacy.html",
         "defaultPrompt": [
@@ -105,7 +105,7 @@
       },
       "publication": {
         "countries": [],
-        "release_notes": "LOOP Sandbox 0.2.3 directory-review draft. Adds a real 2-minute-31-second desktop walkthrough with English narration, OAuth consent, catalog/3D preview, locked revisions, save/reopen, explicitly confirmed simulated checkout, and negative prompts. Domain verification, publisher OAuth connection, and the 11-tool scan completed. Initial card loading required a retry; independent second-account and physical-mobile acceptance remain open. Includes sandbox service terms and five positive/three negative review cases. Hosted MCP remains version 0.2.1. No real payment, manufacturing, or shipping. Public review and publication are not complete."
+        "release_notes": "LOOP Sandbox 0.2.4 local review package. Uses an explicit English website entry and the current hosted MCP endpoint. Includes the existing real desktop walkthrough, five positive and three negative review cases, and sandbox-only disclosures. Hosted MCP remains version 0.2.1. This package has not been uploaded or submitted for directory review. Independent second-account and physical-mobile acceptance remain open. No real payment, manufacturing or shipping."
       }
     }
   }

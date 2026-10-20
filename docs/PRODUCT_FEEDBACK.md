@@ -1,6 +1,6 @@
 # Product feedback and friction log
 
-**Team-review draft, October 18, 2026.** Implementation facts and issue records come from the source, tests and dated validation. Onboarding impressions and reuse decisions below are proposed answers for the actual developers to confirm; they are not collected user research.
+**Owner-review draft, October 20, 2026. Not submitted.** Implementation facts and issue records come from the source, tests and dated validation. The project owner confirmed the conditional reuse decisions. These are developer-integration observations, not collected user research. The saved Devpost answers and the shared feedback document use the same scope.
 
 [Official submission guidance](https://amazonappdev2026.devpost.com/updates/46538-strong-submission-tips) asks for each tool's purpose, strengths, problems, onboarding and reuse decision. Include other tools actually used by the team; do not claim experience with partner-only Alexa+ SDKs.
 
@@ -12,9 +12,9 @@
 
 **Needs work:** Production guidance could separate connection success, large-resource delivery, guest authorization and host UI rendering more explicitly.
 
-**Onboarding, for developer confirmation:** Basic initialization and tool calls were simpler than production OAuth and large interactive resources.
+**Onboarding:** Basic initialization and tool calls were simpler than production OAuth and large interactive resources.
 
-**Build again, proposed:** Yes, because the product service remains reusable across compatible clients. Confirm this with the implementing developers.
+**Build again:** Yes, because the product service remains reusable across compatible clients.
 
 ## 2. MCP Apps and interactive host card
 
@@ -24,9 +24,9 @@
 
 **Needs work:** CSP, WebAssembly and asset delivery require host-specific acceptance. Bridge success alone does not establish a rendered card.
 
-**Onboarding, for developer confirmation:** Achieving reliable 3D in constrained frames required separating website physics from card rendering and changing asset delivery.
+**Onboarding:** Achieving reliable 3D in constrained frames required separating website physics from card rendering and changing asset delivery.
 
-**Build again, proposed:** Yes, with an explicit target-host capability matrix and visible loading/fallback states.
+**Build again:** Yes, with an explicit target-host capability matrix and visible loading/fallback states.
 
 ## 3. OpenAI Responses API and ChatGPT host
 
@@ -36,9 +36,9 @@
 
 **Needs work:** Structurally valid output still needs domain validation. A conversational budget is not a hard spending cap. API configuration and ChatGPT host access are separate concepts for new operators.
 
-**Onboarding, for developer confirmation:** API setup and host OAuth/card setup were separate integration tracks, now described independently in the guides.
+**Onboarding:** API setup and host OAuth/card setup were separate integration tracks, now described independently in the guides.
 
-**Build again, proposed:** Yes, with shared domain validation and separate live provider/host acceptance. Other models and vendors need their own compatibility testing.
+**Build again:** Yes, with shared domain validation and separate live provider/host acceptance. Other models and vendors need their own compatibility testing.
 
 ## 4. Amazon Pay US Sandbox and Node SDK
 
@@ -48,9 +48,9 @@
 
 **Needs work:** Optional response fields and completed-session retries need clear examples. An omitted `checkoutMode` field initially triggered an overly strict local check. Buyer session state and multiple windows also complicated a test run.
 
-**Onboarding, for developer confirmation:** Sandbox registration, store/key configuration, return origins and a test buyer needed explicit guidance. The team avoided an unrelated paid seller subscription.
+**Onboarding:** Sandbox registration, store/key configuration, return origins and a test buyer needed explicit guidance. The team avoided an unrelated paid seller subscription.
 
-**Build again, proposed:** Yes, with fresh merchant/buyer acceptance before consequential releases. Confirm this answer with the developer who tested checkout.
+**Build again:** Yes, with fresh merchant/buyer acceptance before consequential releases.
 
 ## 5. Vercel
 
@@ -60,9 +60,9 @@
 
 **Needs work:** Large card/GLB resources exceeded the earlier buffered response boundary and required streamed responses and artifact-level checks.
 
-**Onboarding, for developer confirmation:** Full server bundling, included assets, shared state and canonical audience configuration required more than a frontend-only deployment.
+**Onboarding:** Full server bundling, included assets, shared state and canonical audience configuration required more than a frontend-only deployment.
 
-**Build again, proposed:** Yes for this architecture, with persistent shared state and response-size checks.
+**Build again:** Yes for this architecture, with persistent shared state and response-size checks.
 
 ## 6. Supabase JavaScript client and Data API
 
@@ -72,11 +72,11 @@
 
 **Needs work:** Fresh-project Data API grants should be explicit alongside RLS. Sharing storage also does not create a shared browser guest identity.
 
-**Onboarding, for developer confirmation:** Full schema application and a server-only key were important; health checks were followed by separate write acceptance.
+**Onboarding:** Full schema application and a server-only key were important; health checks were followed by separate write acceptance.
 
-**Build again, proposed:** Yes, with restricted table access, server-side ownership checks and migration validation.
+**Build again:** Yes, with restricted table access, server-side ownership checks and migration validation.
 
-## 7. React, Three.js, React Three Fiber and Blender
+## 7. React, Three.js, React Three Fiber, Rapier and Blender
 
 **Use:** Procedural charms, original bag geometry, materials, interactive previews and reusable renders. Website motion uses Rapier; the card uses static WebGL.
 
@@ -84,9 +84,21 @@
 
 **Needs work:** Asset weight, first-frame loading and host restrictions need independent tests. Visual plausibility does not establish manufacturing accuracy.
 
-**Onboarding, for developer confirmation:** Materials, attachment geometry and bounded motion took more iteration than the initial UI. New users can run the bundled result without Blender.
+**Onboarding:** Materials, attachment geometry and bounded motion took more iteration than the initial UI. New users can run the bundled result without Blender.
 
-**Build again, proposed:** Yes, with asset budgets and physical-device performance acceptance.
+**Build again:** Yes, with asset budgets and physical-device performance acceptance.
+
+## 8. TypeScript, Node.js, Express and Zod
+
+**Use:** Typed frontend/backend contracts, Node HTTP services and Express routing, and runtime schemas at API/tool boundaries.
+
+**Worked well:** Shared types and schemas keep previews, quotes and persistence aligned; schema errors are returned before an invalid configuration is saved.
+
+**Needs work:** Compile-time types do not validate untrusted model or HTTP input. Runtime schemas still need compatibility, ownership and confirmation checks.
+
+**Onboarding:** Basic routes and schemas were straightforward; cloud ESM bundling, runtime imports and cross-entry validation needed dedicated build and artifact checks.
+
+**Build again:** Yes, with runtime validation and packaged-entry checks alongside TypeScript compilation.
 
 ## Friction log A — omitted Amazon Pay field
 

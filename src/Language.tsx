@@ -5,6 +5,8 @@ import type { Quote } from '../shared/types';
 import './language.css';
 
 function readLanguage(): Language {
+  const requested = new URLSearchParams(window.location.search).get('lang');
+  if (requested === 'en' || requested === 'zh-CN') return requested;
   try { return resolveLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY)); }
   catch { return 'en'; }
 }

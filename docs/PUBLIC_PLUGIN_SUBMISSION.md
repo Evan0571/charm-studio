@@ -26,6 +26,8 @@ The official [plugin guidelines](https://developers.openai.com/plugins/plugin-gu
 
 ## Package
 
+Current local package: **0.2.4**, rebuilt October 20 with an explicit English website URL. This is a local artifact refresh; no new Platform upload, review submission or public publication was performed. The remote MCP service keeps its independent version 0.2.1.
+
 - Source folder: [`plugins/loop-sandbox/`](../plugins/loop-sandbox/).
 - Manifest: [`plugin.json`](../plugins/loop-sandbox/plugin.json).
 - Remote MCP configuration: [`mcp.json`](../plugins/loop-sandbox/mcp.json).
@@ -38,7 +40,7 @@ python3 - <<'PY'
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 root = Path('plugins/loop-sandbox')
-output = Path('tmp/loop-publication/loop-sandbox-0.2.3.zip')
+output = Path('tmp/loop-publication/loop-sandbox-0.2.4.zip')
 output.parent.mkdir(parents=True, exist_ok=True)
 with ZipFile(output, 'w', ZIP_DEFLATED) as archive:
     for relative in ['plugin.json', 'mcp.json', 'assets/loop.svg', 'LICENSE']:

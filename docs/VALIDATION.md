@@ -1,6 +1,14 @@
 # Validation record
 
-Current review: October 18, 2026. Historical entries describe the versions and environments tested at the time. Mocked, local and live checks are distinguished below.
+Current review: October 20, 2026. Historical entries describe the versions and environments tested at the time. Mocked, local and live checks are distinguished below.
+
+## October 20 — Devpost recheck and explicit English entry
+
+- Re-read the current official rules and FAQ against the saved Devpost draft. Removed the second same-domain website label and second GitHub label from Try it out; the real MCP demo and reviewer guide remain in testing instructions. Non-video fields were saved and reopened to verify selections, eligibility declarations, all five feedback answers and the explicit-English testing link. No final terms were accepted and no submission was made.
+- The site already defaults to English for new visitors. Added `?lang=en` (or `?lang=zh-CN`) to override an existing preference on entry. A real browser against the complete local production build verified Chinese selection and reload persistence, explicit-English override and reload, the English studio, and English MCP initialization with **11 tools**. Local provider integrations were disabled and storage was in memory.
+- **175/175 tests passed**. Complete TypeScript/frontend/MCP-card/server build, plain-Node Vercel artifact import, full widget/large-GLB SSE transfer, offline desktop stdio reconnect and isolated MCP save/prepare/confirmation retry checks passed. Smoke-test orders were in temporary storage; no hosted order or payment was created.
+- Updated stale submission docs to distinguish the saved Devpost draft, existing 2:31 walkthrough, absent public YouTube/Vimeo link, and outstanding independent second-account/physical-mobile acceptance. The shared Google feedback document remains link-readable.
+- Refreshed local plugin metadata to **0.2.4** with an English website URL. This does not change the independent hosted MCP service version or submit the plugin to a directory. Source and plugin archives are exported from the final commit; final online deployment/CI outcomes are recorded separately from these local checks.
 
 ## October 18 — public showcase documentation checks
 
@@ -57,4 +65,4 @@ Detailed older source changes and local records remain in Git history. Current c
 
 ## Still requiring target-environment acceptance
 
-Independent second-account ChatGPT OAuth/card/save/confirmation; target-host enforced CSP; physical mobile/low-end GPU performance; broad Windows/Linux and desktop host rendering; and the final recorded demo. Automated/local results do not replace these checks.
+Independent second-account ChatGPT OAuth/card/save/confirmation; target-host enforced CSP; physical mobile/low-end GPU performance; broad Windows/Linux and desktop host rendering; and final review/public video hosting. The October 19 walkthrough exists; automated/local results do not replace these checks.

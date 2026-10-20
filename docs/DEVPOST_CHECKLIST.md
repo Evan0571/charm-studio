@@ -1,120 +1,40 @@
 # Devpost 提交清单
 
-核对日期：2026-10-18。主赛道：**Alexa+ / self-hosted MCP**。本文件用于团队分工；正式对外项目介绍使用 [英文草稿](DEVPOST_SUBMISSION.md)，评审操作使用 [English testing guide](TESTING.md)。
+核对日期：**2026-10-20**。主赛道：**Alexa+ / self-hosted MCP**。当前 [LOOP 项目](https://devpost.com/software/loop-bievcp) 为 **Draft，3/5 步完成，尚未提交**。遵照项目所有者要求，视频栏保留空白，最终条款和 Submit project 未执行。
 
-截止：**2026-10-23 12:00 PDT = 芝加哥 10 月 23 日 14:00 CDT = 北京 10 月 24 日 03:00**。[比赛首页](https://amazonappdev2026.devpost.com/)
+截止：**2026-10-23 12:00 PDT = 芝加哥 10 月 23 日 14:00 CDT = 北京 10 月 24 日 03:00**。[官方规则](https://amazonappdev2026.devpost.com/rules) · [FAQ](https://amazonappdev2026.devpost.com/details/faqs)
 
-## 1. 注册并建立 Devpost 项目
+## 已填写并核对
 
-**要求：** 在比赛页面加入活动，创建参赛项目；团队指定一名符合资格的代表提交，填写真实成员。[官方规则](https://amazonappdev2026.devpost.com/rules)
-
-**当前：** 团队尚未建立项目草稿。
-
-**待办：** 登录 [My projects / submission 页面](https://devpost.com/submit-to/30992-build-ship-shape-amazon-developer-hackathon/manage/submissions)，创建 LOOP 项目，添加成员、确定代表。完成后保留项目链接和最终提交凭证。
-
-## 2. 选择 Alexa+ 主赛道并说明技术路径
-
-**要求：** 自托管 MCP 路径采用 2025-11-25 或以上协议和 Streamable HTTP。允许真实网页 MCP 客户端演示；不需要真实 Alexa+ 设备或合作伙伴工具。[FAQ](https://amazonappdev2026.devpost.com/details/faqs)、[Resources](https://amazonappdev2026.devpost.com/resources)
-
-**当前：** 已实测 2025-11-25 / Streamable HTTP，10 个设计工具＋1 个素材工具。
-
-**待办：** 选择 Alexa+，Built With 填入实际技术；正文与视频清楚点出 self-hosted MCP、MCP Apps 和宿主客户端。ChatGPT 是演示宿主，不要描述为已接入真实 Alexa+。
-
-## 3. 填写英文项目简介与项目故事
-
-**要求：** 说明做什么、如何工作；提交材料使用英文或附英文翻译。若项目早于比赛开始存在，说明比赛期间的重要更新。[官方规则](https://amazonappdev2026.devpost.com/rules)
-
-**当前：** [英文项目故事草稿](DEVPOST_SUBMISSION.md) 已提供，待团队审核。仓库最早提交在 2026-10-08；这不能单独证明代码此前不存在。
-
-**待办：** 填写名称、tagline、用户问题、功能、实现、挑战和后续方向；确认开发时间说明真实。不要添加未经测量的用户数量、转化率、节省时间或收入。
-
-## 4. 提供可访问的 GitHub 源码
-
-**要求：** GitHub 包含运行所需源码、资源和说明；公开方案需要可识别的开源许可证。[比赛首页](https://amazonappdev2026.devpost.com/)
-
-**当前交付：** 仓库采用 MIT；英文 README、运行配置、资源来源和评审说明已整理。发布检查需要确认 GitHub 为 Public 且 About 显示 MIT。
-
-**待办：** 在未登录窗口打开 [仓库](https://github.com/Evan0571/charm-studio)，确认可读、许可证可见、README 截图正常。公开方案无需再邀请六位私有仓库评审。若日后改回私有，则必须重新按官方名单授予权限。
-
-## 5. 填写体验链接与英文测试说明
-
-**要求：** 让评审能够免费评估项目；英文测试步骤要可执行。Alexa+ 不强制永久在线托管，本地可运行源码与视频也可用于评审。[FAQ](https://amazonappdev2026.devpost.com/details/faqs)
-
-**当前：** 线上网站、真实 MCP 网页客户端、OAuth 端点和英文指南已具备。
-
-**待办：** 填入下面的链接，并附 [TESTING.md](TESTING.md)。先用无需 ChatGPT 账号的网页入口；ChatGPT 卡片作为额外路线。仓库与视频应持续可访问至评审期结束（2026-11-20）。
-
-| 填写位置 | 地址 |
+| 比赛项目 | 草稿状态与证据 |
 | --- | --- |
-| Source code | https://github.com/Evan0571/charm-studio |
-| Website | https://loop-charm-studio.vercel.app/ |
-| Actual MCP demo | https://loop-charm-studio.vercel.app/mcp-demo.html |
-| MCP Server URL | `https://loop-charm-studio.vercel.app/mcp` |
-| English testing instructions | https://github.com/Evan0571/charm-studio/blob/master/docs/TESTING.md |
+| 项目与团队 | LOOP；Zihan TANG (`ztang325`) 与逸凡宋 (`syf1248226176`)；在已有团队草稿中编辑，未另建项目或发送邀请 |
+| 资格与居住地 | 所有者确认：全体居住美国、加拿大省份 N/A；三项年龄/地区/关联员工声明属实，表单已勾选 |
+| 主赛道 | Alexa+；自托管 MCP 2025-11-25 / Streamable HTTP，10 个设计工具＋1 个素材工具；网页客户端是实际 MCP 客户端 |
+| 英文项目故事 | 介绍、实现、挑战、收获、后续与开发时间已保存；所有者确认比赛期间从零开发，仓库记录始于 10 月 8 日 |
+| GitHub | 公开 MIT 仓库，含源码、资源、安装与测试说明；公开仓库无需邀请私有仓库评审 |
+| 技术与能力边界 | 清楚说明沙盒、访客工作区、无真实扣款/发货、未连接真实 Alexa+ 或受限 SDK；未声称商业指标或第二账号已通过 |
+| Try it out | 精简为英文网站与 GitHub 源码两个链接；Devpost 会把同域名的不同路径显示成相同名称，故演示与指南放在评审说明中 |
+| 评审入口 | 无需 ChatGPT 账号、安装或自带 API Key 的真实 MCP 网页客户端；英文测试说明含 fallback、保存、报价与可选确认；显式 `?lang=en` 避免旧中文偏好影响评审 |
+| 产品反馈 | 五个必答维度，覆盖 MCP、MCP Apps、OpenAI、Amazon Pay Sandbox、Vercel、存储、3D/物理与 TypeScript/Node/Express/Zod；复用意愿、学习 Significant 与职业 AI 价值 Yes 经所有者确认 |
+| 可选材料 | Friction log 与带优先级的 feature requests 已保存；Google 文档为“知道链接的任何人可查看” |
+| 附加挑战 | AWS Builder 与 Open Source 均选 No；不虚构 AWS/Kiro 使用或额外贡献。若团队决定加报，另行核对并填写对应贡献材料 |
+| 图片 | 两张真实工作室/对话卡片截图及英文说明，价格取自真实画面 |
 
-## 6. 录制并公开上传演示视频
+## 提交前仍必须完成
 
-**要求：** 少于 3 分钟，在 YouTube/Vimeo 公开可见；展示实际运行，有英文讲解或翻译，并拥有所用素材的使用权。[比赛首页](https://amazonappdev2026.devpost.com/)
+- [ ] **演示视频公开托管并填入表单。** 已有 [2 分 31 秒英文讲解实录](review/README.md)，但现有网站播放器/MP4 链接不满足比赛指定的公开 YouTube/Vimeo 托管要求。核对最终画面、英文说明、素材权利后上传，并在未登录状态确认可播放；本次按要求未填写视频栏。
+- [ ] **所有者最终审阅并正式提交。** 完成视频后再核对预览、成员、赛道和附件；接受最终条款并提交，保存回执。目前保存草稿不等于参赛提交。
 
-**当前：** [口播与操作稿](DEMO_SCRIPT.md) 已准备；视频尚未录制、上传。
+## 建议完成的验收，不能写成已通过
 
-**待办：** 按约 2 分 50 秒的脚本录制并剪辑，保留真实操作结果；字幕与最终画面一致。上传后在未登录窗口检查可播放，再把链接填入 Devpost。不要把文档链接当作已完成视频。
+- [ ] 第二个真实 ChatGPT 账号独立完成 OAuth、3D 卡片、保存/重开和明确确认。作者账号、Platform 发布者连接、SDK 与自动测试不能替代该结果。
+- [ ] 目标宿主实际 CSP、实体手机和低端 GPU 性能验收。已有桌面画面/窄屏检查不等于实体设备验收。
 
-## 7. 完成必填 Product Feedback
+以上是当前原型的验收边界；比赛接受真实 MCP 网页客户端演示，不要求公开 ChatGPT 插件获批、真实 Alexa+ 硬件或伙伴 SDK。[官方 FAQ](https://amazonappdev2026.devpost.com/details/faqs)
 
-**要求：** 对使用的开发工具、API、SDK，写用途、优点、问题、上手体验、是否愿意再用及原因。[官方提交提示](https://amazonappdev2026.devpost.com/updates/46538-strong-submission-tips)
+## 代码、部署和打包核对
 
-**当前：** [英文工具反馈草稿](PRODUCT_FEEDBACK.md) 已整理，包含 MCP/MCP Apps、OpenAI、Amazon Pay、Vercel、Supabase 与 3D 工具。
+`pnpm test`、`pnpm build`、Vercel 产物导入、MCP 流式资源与桌面传输检查记录在 [VALIDATION.md](VALIDATION.md)。英文入口同时核对默认英文、已有中文偏好时显式英文覆盖、手动切换及刷新。
 
-**待办：** 每位实际开发者核对主观评价、补充自己用到的工具并确认“是否再用”。删除草稿标记后填入表单；未使用的 Amazon 合作伙伴 SDK 不要写成亲测反馈。
-
-## 8. 提交可选 friction log 和 feature requests
-
-**要求：** 可选问题记录说明任务、复现步骤、预期/实际、严重度、解决方法和可执行建议；官方允许最高 10% 加分，并非保证加分。[比赛首页](https://amazonappdev2026.devpost.com/)
-
-**当前：** 反馈草稿整理了实际记录：Amazon Pay 返回字段兼容、Vercel 大资源响应、卡片 CSP/stdio 消息体限制。
-
-**待办：** 核实每条证据与描述，把适用条目填入 friction log；不要把“未获合作伙伴权限”编成测试过受限 SDK。Feature request 用 Critical / Important / Nice-to-have 标明优先级。
-
-## 9. 核实是否参加附加赛道
-
-**要求：** AWS Builder 需要真实 AWS 服务集成或比赛期间使用 Kiro Crew 的说明；Open Source 需要额外开源项目或公开贡献及相应链接/解释。[官方规则](https://amazonappdev2026.devpost.com/rules)
-
-**当前：** 主项目公开与 Amazon Pay 接入，不能自动证明已满足上述两项。
-
-**待办：** 暂只选择 Alexa+。若团队确有其他符合条件的工作，再补证据与表单；不要为了勾选奖项而虚构 AWS/Kiro 使用或把主仓库公开当作额外贡献。
-
-## 10. 准备项目图片并核对展示文案
-
-**团队建议：** 用实际工作室和对话卡片截图，让封面与视频一致。现有 [工作室截图](images/studio.png) 可作为素材。图片数量、尺寸和字段以实际 Devpost 表单为准，本清单没有把未核实的 UI 字段当成比赛硬性要求。
-
-**待办：** 检查英文可读、模型已加载，价格取自画面真实结果。不要显示 API Key、授权 token、测试买家密码、私密邮件或其他无关账号内容。
-
-## 11. 完成一次陌生用户验收
-
-**团队建议：** 由队友用新浏览器按 [TESTING.md](TESTING.md) 完成生成、锁定修改、3D、保存重开、报价、取消与确认。如果视频主线是 ChatGPT，再用第二个真实账号验证 OAuth、卡片和保存/确认。
-
-**当前：** 173 项自动测试、线上协议、真实 AI 修改和网页 3D 已通过；第二真实 ChatGPT 账号的完整验收仍待完成。
-
-**待办：** 记录通过/失败，不把 mock 或作者账号结果当作第二账号结果。测试订单无扣款和发货；Amazon Pay Sandbox 用独立测试买家，MCP 卡片不发起该支付流程。
-
-## 12. 正式提交并核对回执
-
-**要求：** 截止前完成所有必填项并正式提交；保存草稿不等于提交。[官方规则](https://amazonappdev2026.devpost.com/rules)
-
-**待办：** 检查项目页、所有链接、公开视频、赛道、成员和反馈，执行表单中的最终提交动作，保存确认页面。建议 10 月 22 日完成首版提交，把 23 日留给修正；规则限制截止后的材料修改。
-
-## 团队完成标记
-
-- [ ] 1 注册、成员与项目草稿
-- [ ] 2 赛道与 Built With
-- [ ] 3 审核英文项目故事与开发时间
-- [ ] 4 未登录确认公开仓库与 MIT
-- [ ] 5 填写体验/代码/测试链接
-- [ ] 6 录制、剪辑并公开上传视频
-- [ ] 7 开发者审核 Product Feedback
-- [ ] 8 审核可选问题日志与功能建议
-- [ ] 9 仅选择有证据支持的附加赛道
-- [ ] 10 截图与展示文案
-- [ ] 11 第二用户/目标宿主验收
-- [ ] 12 正式提交并保存回执
+本地目录插件包版本 **0.2.4**；MCP 服务仍有独立版本 **0.2.1**，两者无需相等。插件 ZIP 仅包含远程连接配置和审核元数据，应用代码由部署提供；源码 ZIP 应从最终 Git commit 导出。打包命令见 [PUBLIC_PLUGIN_SUBMISSION.md](PUBLIC_PLUGIN_SUBMISSION.md)。本次不进行 OpenAI 目录审核或 Devpost 最终提交。

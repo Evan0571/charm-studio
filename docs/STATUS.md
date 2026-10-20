@@ -1,6 +1,6 @@
 # Current project status
 
-Updated October 18, 2026. This is the current capability summary; dated evidence and older checks are in [VALIDATION.md](VALIDATION.md).
+Updated October 20, 2026. This is the current capability summary; dated evidence and older checks are in [VALIDATION.md](VALIDATION.md).
 
 ## Available
 
@@ -19,6 +19,10 @@ Updated October 18, 2026. This is the current capability summary; dated evidence
 | Local desktop | stdio entry with persistent local guest and on-demand MCP assets |
 
 ## Latest evidence
+
+- October 20: Devpost non-video fields are saved in the existing LOOP draft and reviewed against the current rules. It remains **not submitted**; the required public YouTube/Vimeo video field is blank by owner instruction.
+- The October 19 [2:31 walkthrough](review/README.md) records actual desktop OAuth consent, 3D design/revision, save/reopen and one explicitly confirmed simulated order. It is not independent second-account or mobile acceptance.
+- October 20: **175/175 automated tests passed**; the complete build, packaged Vercel entry, streamed resources, desktop transport and isolated MCP smoke checks passed. Browser checks passed for explicit `?lang=en` entry support on the homepage, studio and web MCP client. New visitors already default to English; an explicit entry overrides a previous Chinese preference.
 
 - October 18: **173/173 automated tests passed**, using isolated data and mocked model/provider behavior.
 - The pre-documentation code baseline `d508741` passed GitHub CI: tests, complete build, Vercel artifact check, MCP streaming check and desktop stdio check.
@@ -43,6 +47,6 @@ MCP confirmation creates a test order. Amazon Pay Sandbox is a separate website 
 - Physical mobile and low-end GPU performance; broad Windows/Linux/desktop-host acceptance.
 - Verified customer accounts, deployment-wide rate limits, operations monitoring, backups and a commerce administration system.
 - Real Alexa+ devices/voice runtime and partner-only tooling are outside the current prototype.
-- Final recording, team review of submission/feedback drafts and the actual Devpost submission. See the [numbered checklist](DEVPOST_CHECKLIST.md).
+- Final video review and public YouTube/Vimeo upload, owner review and actual Devpost submission. The existing website-hosted walkthrough alone does not satisfy the required video host. See the [checklist](DEVPOST_CHECKLIST.md).
 
 Automated tests and historical acceptance records are not a claim that every external host or provider was re-tested today.

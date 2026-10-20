@@ -4,13 +4,15 @@ LOOP is a working bag-charm design prototype for the Alexa+ track. The hosted we
 
 ## 1. Open the website
 
-[https://loop-charm-studio.vercel.app/](https://loop-charm-studio.vercel.app/)
+[https://loop-charm-studio.vercel.app/?lang=en](https://loop-charm-studio.vercel.app/?lang=en)
+
+New visitors start in English. `?lang=en` also opens English when this browser previously selected Chinese. The language selector remains available; visits without an explicit language use the saved preference.
 
 Use **Make it yours** or open [the studio](https://loop-charm-studio.vercel.app/#/studio). Wait for the 3D assets to load. Rotate/zoom, change the main charm or accent, and switch between **The charm** and **On a bag**. The configuration and USD quote should update together. Bag appearance does not change the charm price.
 
 ## 2. Test the conversational MCP workflow
 
-Open [the MCP web client](https://loop-charm-studio.vercel.app/mcp-demo.html), then:
+Open [the MCP web client](https://loop-charm-studio.vercel.app/mcp-demo.html?lang=en), then:
 
 1. Click **Connect to the studio**. The status should show **Connected · 11 tools**.
 2. Enter: `Create a hero design with a cherry charm and a pearl for my brown tote, under 15 USD.`

@@ -2,7 +2,7 @@
 
 Turn a styling idea into an editable bag charm. Describe your bag, explore a live 3D design, keep the details you love, and review an itemized quote before confirming a test order.
 
-[Try LOOP](https://loop-charm-studio.vercel.app/) · [Try the MCP demo](https://loop-charm-studio.vercel.app/mcp-demo.html) · [Reviewer guide](docs/TESTING.md) · [简体中文](README.zh-CN.md)
+[Try LOOP](https://loop-charm-studio.vercel.app/?lang=en) · [Try the MCP demo](https://loop-charm-studio.vercel.app/mcp-demo.html?lang=en) · [Reviewer guide](docs/TESTING.md) · [简体中文](README.zh-CN.md)
 
 ![LOOP studio showing a leather tote, banana charm, pearl accent, and editable parts](docs/images/studio.png)
 

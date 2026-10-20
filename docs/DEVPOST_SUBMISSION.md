@@ -1,6 +1,6 @@
 # Devpost submission copy
 
-**Team-review draft.** Verify authorship, development dates, contributor list, actual recorded actions and subjective statements before submitting. The video and Devpost project do not exist yet. The [checklist](DEVPOST_CHECKLIST.md) tracks the remaining work.
+**Owner-review draft, October 20, 2026. Not submitted.** The [Devpost draft](https://devpost.com/software/loop-bievcp) contains the project story, images, links and additional information. The owner confirmed the team, eligibility, US residence, learning and conditional tool-reuse answers. A recorded walkthrough exists, but the required public YouTube/Vimeo video link is still absent. The [checklist](DEVPOST_CHECKLIST.md) tracks the remaining work.
 
 ## Project name
 
@@ -57,14 +57,14 @@ Use the closest actual Devpost tags. Do not add AWS services, Kiro Crew or gated
 ## Links
 
 - Source: https://github.com/Evan0571/charm-studio
-- Website: https://loop-charm-studio.vercel.app/
-- Real MCP web client: https://loop-charm-studio.vercel.app/mcp-demo.html
+- Website: https://loop-charm-studio.vercel.app/?lang=en
+- Real MCP web client: https://loop-charm-studio.vercel.app/mcp-demo.html?lang=en
 - MCP URL: `https://loop-charm-studio.vercel.app/mcp`
 - English reviewer guide: https://github.com/Evan0571/charm-studio/blob/master/docs/TESTING.md
-- Demo video: **record and upload before submission**
+- Demo video: **the existing walkthrough still needs the required public YouTube/Vimeo upload and final team review**
 
 ## Track and development statement
 
 Primary track: **Alexa+ — self-hosted MCP server**, demonstrated through ChatGPT/MCP Apps and a real web MCP client. No real Alexa+ device or partner-only runtime is connected.
 
-Repository development is recorded from October 8, 2026, within the competition window. The team must confirm whether any underlying project predates August 31; if it does, replace this note with a precise account of the significant updates made during the event and show those updates in the demo.
+LOOP was created from scratch during the hackathon submission period, as confirmed by the project owner. Repository development began on October 8, 2026. The project includes the conversational MCP workflow, editable 3D card, saved-draft revisions, hosted OAuth and explicitly confirmed sandbox checkout.
